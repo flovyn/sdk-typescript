@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/native" },
+    { "path": "./packages/sdk" },
+    { "path": "./examples/basic" }
+  ]
+}

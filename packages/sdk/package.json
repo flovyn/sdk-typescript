@@ -1,0 +1,46 @@
+{
+  "name": "@flovyn/sdk",
+  "version": "0.1.0",
+  "description": "Flovyn TypeScript SDK - Durable workflow orchestration for TypeScript/Node.js",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@flovyn/native": "workspace:*"
+  },
+  "devDependencies": {
+    "testcontainers": "^10.21.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.1.4"
+  },
+  "peerDependencies": {
+    "testcontainers": "^10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "testcontainers": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -49,6 +49,32 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  examples/data-pipeline:
+    dependencies:
+      '@flovyn/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  examples/order-processing:
+    dependencies:
+      '@flovyn/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/native:
     devDependencies:
       typescript:

@@ -19,7 +19,25 @@
 import { randomUUID } from 'crypto';
 import type { WorkflowDefinition, TaskDefinition, WorkflowHandle } from '../types';
 import { Duration } from '../duration';
-import { getTestHarness, type TestHarness } from './test-harness';
+import { getTestHarness, type TestHarness, type HarnessConfig } from './test-harness';
+
+/**
+ * Try to get harness config from vitest's inject().
+ * Returns null if not running in vitest or inject is not available.
+ */
+async function tryGetInjectedConfig(): Promise<HarnessConfig | null> {
+  try {
+    // Dynamic import to avoid requiring vitest at runtime
+    const { inject } = await import('vitest');
+    const config = inject('harnessConfig');
+    if (config) {
+      return config;
+    }
+  } catch {
+    // Not running in vitest or inject not available
+  }
+  return null;
+}
 
 /**
  * Options for the test environment.
@@ -134,8 +152,11 @@ export class FlovynTestEnvironment {
       return;
     }
 
-    // Get or create the test harness
-    this._harness = await getTestHarness();
+    // Try to get injected config from vitest's globalSetup
+    const injectedConfig = await tryGetInjectedConfig();
+
+    // Get or create the test harness (pass config if available)
+    this._harness = await getTestHarness(injectedConfig ?? undefined);
 
     // Use harness credentials if not explicitly set
     const orgId = this._orgId || this._harness.orgId;

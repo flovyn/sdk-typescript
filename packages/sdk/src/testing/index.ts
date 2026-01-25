@@ -41,6 +41,7 @@ export { FlovynTestEnvironment, type TestEnvironmentOptions } from './test-envir
 export {
   TestHarness,
   type TestHarnessConfig,
+  type HarnessConfig,
   getTestHarness,
   cleanupTestHarness,
 } from './test-harness';

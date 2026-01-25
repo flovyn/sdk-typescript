@@ -2,23 +2,30 @@
  * Global setup for E2E tests.
  *
  * This runs ONCE before all test files, not per-file.
+ * Uses vitest's provide() to share harness info with test workers.
  */
 
-import { getTestHarness, cleanupTestHarness } from '../../packages/sdk/src/testing';
+import type { TestProject } from 'vitest/node';
+import { getTestHarness, cleanupTestHarness, type HarnessConfig } from '../../packages/sdk/src/testing';
 
-export async function setup() {
+export async function setup(project: TestProject) {
   console.log('[Global Setup] Starting test harness...');
   try {
     const harness = await getTestHarness();
-    // Export harness info for tests to use
-    process.env.FLOVYN_TEST_GRPC_HOST = harness.grpcHost;
-    process.env.FLOVYN_TEST_GRPC_PORT = String(harness.grpcPort);
-    process.env.FLOVYN_TEST_HTTP_HOST = harness.httpHost;
-    process.env.FLOVYN_TEST_HTTP_PORT = String(harness.httpPort);
-    process.env.FLOVYN_TEST_ORG_ID = harness.orgId;
-    process.env.FLOVYN_TEST_ORG_SLUG = harness.orgSlug;
-    process.env.FLOVYN_TEST_API_KEY = harness.apiKey;
-    process.env.FLOVYN_TEST_WORKER_TOKEN = harness.workerToken;
+
+    // Provide harness info to test workers via vitest's provide()
+    const config: HarnessConfig = {
+      grpcHost: harness.grpcHost,
+      grpcPort: harness.grpcPort,
+      httpHost: harness.httpHost,
+      httpPort: harness.httpPort,
+      orgId: harness.orgId,
+      orgSlug: harness.orgSlug,
+      apiKey: harness.apiKey,
+      workerToken: harness.workerToken,
+    };
+    project.provide('harnessConfig', config);
+
     console.log('[Global Setup] Test harness ready');
   } catch (error) {
     console.error('[Global Setup] Failed to start test harness:', error);

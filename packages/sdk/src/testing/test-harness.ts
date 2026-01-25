@@ -334,36 +334,44 @@ let _globalHarness: TestHarness | null = null;
 let _harnessPromise: Promise<TestHarness> | null = null;
 
 /**
- * Create a harness from environment variables (when running in test worker).
+ * Harness config interface (matches what's provided by globalSetup).
+ */
+export interface HarnessConfig {
+  grpcHost: string;
+  grpcPort: number;
+  httpHost: string;
+  httpPort: number;
+  orgId: string;
+  orgSlug: string;
+  apiKey: string;
+  workerToken: string;
+}
+
+// Vitest type augmentation for inject/provide
+declare module 'vitest' {
+  export interface ProvidedContext {
+    harnessConfig: HarnessConfig;
+  }
+}
+
+/**
+ * Create a harness from provided config (when running in test worker).
  * This is used when globalSetup has already started the containers.
  */
-function createHarnessFromEnv(): TestHarness | null {
-  const grpcHost = process.env.FLOVYN_TEST_GRPC_HOST;
-  const grpcPort = process.env.FLOVYN_TEST_GRPC_PORT;
-  const httpHost = process.env.FLOVYN_TEST_HTTP_HOST;
-  const httpPort = process.env.FLOVYN_TEST_HTTP_PORT;
-  const orgId = process.env.FLOVYN_TEST_ORG_ID;
-  const orgSlug = process.env.FLOVYN_TEST_ORG_SLUG;
-  const apiKey = process.env.FLOVYN_TEST_API_KEY;
-  const workerToken = process.env.FLOVYN_TEST_WORKER_TOKEN;
-
-  if (!grpcHost || !grpcPort || !httpHost || !httpPort || !orgId || !orgSlug || !apiKey || !workerToken) {
-    return null;
-  }
-
+function createHarnessFromConfig(config: HarnessConfig): TestHarness {
   // Create a harness stub that doesn't manage containers
   const harness = new TestHarness();
   // Override the public properties
-  harness.grpcHost = grpcHost;
-  harness.grpcPort = parseInt(grpcPort, 10);
-  harness.httpHost = httpHost;
-  harness.httpPort = parseInt(httpPort, 10);
+  harness.grpcHost = config.grpcHost;
+  harness.grpcPort = config.grpcPort;
+  harness.httpHost = config.httpHost;
+  harness.httpPort = config.httpPort;
   // Use Object.assign to set readonly properties
   Object.assign(harness, {
-    orgId,
-    orgSlug,
-    apiKey,
-    workerToken,
+    orgId: config.orgId,
+    orgSlug: config.orgSlug,
+    apiKey: config.apiKey,
+    workerToken: config.workerToken,
     _started: true,
   });
   return harness;
@@ -375,19 +383,18 @@ function createHarnessFromEnv(): TestHarness | null {
  * The harness is shared across all tests to avoid starting/stopping
  * containers for each test.
  *
- * If FLOVYN_TEST_* environment variables are set (from globalSetup),
- * this will create a harness stub without starting new containers.
+ * @param config Optional config from vitest's inject('harnessConfig').
+ *               If provided, creates a harness stub without starting containers.
  */
-export async function getTestHarness(): Promise<TestHarness> {
+export async function getTestHarness(config?: HarnessConfig): Promise<TestHarness> {
   if (_globalHarness?.isStarted) {
     return _globalHarness;
   }
 
-  // Check if running in a test worker with pre-configured env vars
-  const envHarness = createHarnessFromEnv();
-  if (envHarness) {
-    _globalHarness = envHarness;
-    return envHarness;
+  // If config is provided (from globalSetup via inject), use it
+  if (config) {
+    _globalHarness = createHarnessFromConfig(config);
+    return _globalHarness;
   }
 
   if (_harnessPromise) {

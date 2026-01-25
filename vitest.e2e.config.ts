@@ -21,8 +21,8 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    // Setup file for test harness
-    setupFiles: ['./tests/e2e/setup.ts'],
+    // Global setup/teardown for test harness (runs once, not per file)
+    globalSetup: ['./tests/e2e/globalSetup.ts'],
     // Globals for describe, it, expect
     globals: true,
   },

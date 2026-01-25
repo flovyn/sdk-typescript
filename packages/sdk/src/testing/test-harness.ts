@@ -191,8 +191,16 @@ export class TestHarness {
       ]);
     }
 
-    serverBuilder = serverBuilder.withStartupTimeout(120000);
-    this._serverContainer = (await serverBuilder.start()) as StartedContainer;
+    serverBuilder = serverBuilder
+      .withWaitStrategy(Wait.forLogMessage(/gRPC server listening|Server started/))
+      .withStartupTimeout(120000);
+
+    try {
+      this._serverContainer = (await serverBuilder.start()) as StartedContainer;
+    } catch (error) {
+      console.error('[TestHarness] Failed to start Flovyn server container');
+      throw error;
+    }
 
     this.grpcHost = this._serverContainer.getHost();
     this.grpcPort = this._serverContainer.getMappedPort(9090);
@@ -326,14 +334,60 @@ let _globalHarness: TestHarness | null = null;
 let _harnessPromise: Promise<TestHarness> | null = null;
 
 /**
+ * Create a harness from environment variables (when running in test worker).
+ * This is used when globalSetup has already started the containers.
+ */
+function createHarnessFromEnv(): TestHarness | null {
+  const grpcHost = process.env.FLOVYN_TEST_GRPC_HOST;
+  const grpcPort = process.env.FLOVYN_TEST_GRPC_PORT;
+  const httpHost = process.env.FLOVYN_TEST_HTTP_HOST;
+  const httpPort = process.env.FLOVYN_TEST_HTTP_PORT;
+  const orgId = process.env.FLOVYN_TEST_ORG_ID;
+  const orgSlug = process.env.FLOVYN_TEST_ORG_SLUG;
+  const apiKey = process.env.FLOVYN_TEST_API_KEY;
+  const workerToken = process.env.FLOVYN_TEST_WORKER_TOKEN;
+
+  if (!grpcHost || !grpcPort || !httpHost || !httpPort || !orgId || !orgSlug || !apiKey || !workerToken) {
+    return null;
+  }
+
+  // Create a harness stub that doesn't manage containers
+  const harness = new TestHarness();
+  // Override the public properties
+  harness.grpcHost = grpcHost;
+  harness.grpcPort = parseInt(grpcPort, 10);
+  harness.httpHost = httpHost;
+  harness.httpPort = parseInt(httpPort, 10);
+  // Use Object.assign to set readonly properties
+  Object.assign(harness, {
+    orgId,
+    orgSlug,
+    apiKey,
+    workerToken,
+    _started: true,
+  });
+  return harness;
+}
+
+/**
  * Get or create the global test harness.
  *
  * The harness is shared across all tests to avoid starting/stopping
  * containers for each test.
+ *
+ * If FLOVYN_TEST_* environment variables are set (from globalSetup),
+ * this will create a harness stub without starting new containers.
  */
 export async function getTestHarness(): Promise<TestHarness> {
   if (_globalHarness?.isStarted) {
     return _globalHarness;
+  }
+
+  // Check if running in a test worker with pre-configured env vars
+  const envHarness = createHarnessFromEnv();
+  if (envHarness) {
+    _globalHarness = envHarness;
+    return envHarness;
   }
 
   if (_harnessPromise) {

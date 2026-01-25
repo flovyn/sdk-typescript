@@ -43,8 +43,8 @@ async function main() {
     serverUrl: process.env.FLOVYN_SERVER_URL ?? 'http://localhost:9090',
     orgId: process.env.FLOVYN_ORG_ID ?? 'default',
     queue: process.env.FLOVYN_QUEUE ?? 'order-processing',
-    workerToken: process.env.FLOVYN_WORKER_TOKEN,
-    apiKey: process.env.FLOVYN_API_KEY,
+    ...(process.env.FLOVYN_WORKER_TOKEN && { workerToken: process.env.FLOVYN_WORKER_TOKEN }),
+    ...(process.env.FLOVYN_API_KEY && { apiKey: process.env.FLOVYN_API_KEY }),
   });
 
   // Register workflows and tasks
@@ -52,7 +52,8 @@ async function main() {
     client.registerWorkflow(workflow);
   }
   for (const task of allTasks) {
-    client.registerTask(task);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client.registerTask(task as any);
   }
 
   // Start the client

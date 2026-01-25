@@ -238,6 +238,7 @@ export const processBatchTask = task<ProcessBatchInput, ProcessBatchOutput>({
 
     for (let i = 0; i < input.records.length; i++) {
       const record = input.records[i];
+      if (!record) continue;
 
       // Report progress
       ctx.reportProgress((i + 1) / input.records.length);

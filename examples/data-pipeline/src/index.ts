@@ -58,10 +58,12 @@ async function main() {
 
   // Register workflows and tasks
   for (const workflow of allWorkflows) {
-    client.registerWorkflow(workflow);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client.registerWorkflow(workflow as any);
   }
   for (const task of allTasks) {
-    client.registerTask(task);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client.registerTask(task as any);
   }
 
   // Start the client

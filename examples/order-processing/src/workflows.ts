@@ -62,9 +62,9 @@ export interface ProcessOrderInput {
 export interface ProcessOrderOutput {
   orderId: string;
   status: OrderStatus;
-  trackingNumber?: string;
-  estimatedDelivery?: Date;
-  failureReason?: string;
+  trackingNumber?: string | undefined;
+  estimatedDelivery?: Date | undefined;
+  failureReason?: string | undefined;
   compensationApplied: boolean;
 }
 
@@ -190,7 +190,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
         return {
           orderId: order.orderId,
           status: 'cancelled' as OrderStatus,
-          failureReason: ctx.getState<string>('cancelReason'),
+          failureReason: ctx.getState<string>('cancelReason') ?? undefined,
           compensationApplied: false,
         };
       }
@@ -256,7 +256,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
         return {
           orderId: order.orderId,
           status: 'cancelled' as OrderStatus,
-          failureReason: ctx.getState<string>('cancelReason'),
+          failureReason: ctx.getState<string>('cancelReason') ?? undefined,
           compensationApplied: true,
         };
       }

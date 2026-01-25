@@ -8,7 +8,7 @@
  * - Progress tracking
  */
 
-import { workflow, Duration } from '@flovyn/sdk';
+import { workflow, Duration, type WorkflowHandle } from '@flovyn/sdk';
 import {
   fetchDataTask,
   transformRecordTask,
@@ -262,7 +262,7 @@ export const distributedPipelineWorkflow = workflow<PipelineConfig, PipelineResu
 
     // Launch child workflows for each batch
     const childHandles: Array<{
-      handle: ReturnType<typeof ctx.scheduleWorkflow<typeof batchProcessorWorkflow>>;
+      handle: WorkflowHandle<BatchProcessorOutput>;
       batchNumber: number;
     }> = [];
 

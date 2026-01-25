@@ -191,9 +191,9 @@ export class TestHarness {
       ]);
     }
 
-    serverBuilder = serverBuilder
-      .withWaitStrategy(Wait.forLogMessage(/gRPC server listening|Server started/))
-      .withStartupTimeout(120000);
+    // Don't wait for log message - just wait for container to start
+    // We'll rely on the health check below
+    serverBuilder = serverBuilder.withStartupTimeout(120000);
 
     try {
       this._serverContainer = (await serverBuilder.start()) as StartedContainer;

@@ -25,5 +25,7 @@ export default defineConfig({
     globalSetup: ['./tests/e2e/globalSetup.ts'],
     // Globals for describe, it, expect
     globals: true,
+    // Suppress console output from tests
+    silent: true,
   },
 });

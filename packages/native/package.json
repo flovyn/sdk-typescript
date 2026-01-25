@@ -24,14 +24,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "optionalDependencies": {
-    "@flovyn/native-darwin-arm64": "0.1.0",
-    "@flovyn/native-darwin-x64": "0.1.0",
-    "@flovyn/native-linux-arm64-gnu": "0.1.0",
-    "@flovyn/native-linux-arm64-musl": "0.1.0",
-    "@flovyn/native-linux-x64-gnu": "0.1.0",
-    "@flovyn/native-linux-x64-musl": "0.1.0",
-    "@flovyn/native-win32-x64-msvc": "0.1.0"
   }
 }

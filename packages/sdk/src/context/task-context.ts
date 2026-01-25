@@ -43,10 +43,7 @@ export class TaskContextImpl implements TaskContext {
     private readonly onHeartbeat?: () => void,
     private readonly onStream?: (event: StreamEvent) => void
   ) {
-    this._log = createTaskLogger(
-      activationData.taskExecutionId,
-      activationData.taskKind
-    );
+    this._log = createTaskLogger(activationData.taskExecutionId, activationData.taskKind);
     this._lastHeartbeat = Date.now();
   }
 

@@ -262,7 +262,10 @@ export class FlovynTestEnvironment {
     return Promise.race([
       handle.result(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Workflow did not complete within ${timeoutMs}ms`)), timeoutMs)
+        setTimeout(
+          () => reject(new Error(`Workflow did not complete within ${timeoutMs}ms`)),
+          timeoutMs
+        )
       ),
     ]);
   }
@@ -300,7 +303,7 @@ export class FlovynTestEnvironment {
     const url = `http://${this._harness.httpHost}:${this._harness.httpPort}/api/orgs/${this._harness.orgSlug}/workflow-executions/${workflowId}/events`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this._harness.apiKey}`,
+      Authorization: `Bearer ${this._harness.apiKey}`,
     };
 
     const response = await fetch(url, { headers });

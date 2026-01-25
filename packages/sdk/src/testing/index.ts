@@ -32,10 +32,7 @@ export {
   type TrackedOperation,
 } from './mock-workflow-context';
 
-export {
-  MockTaskContext,
-  type TrackedStreamEvent,
-} from './mock-task-context';
+export { MockTaskContext, type TrackedStreamEvent } from './mock-task-context';
 
 // Test environment for E2E testing
 export { FlovynTestEnvironment, type TestEnvironmentOptions } from './test-environment';

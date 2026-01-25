@@ -71,11 +71,7 @@ export interface WorkflowContext {
   taskByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O>;
 
   /** Schedule a task for execution and return a handle. */
-  scheduleTask<I, O>(
-    taskDef: TaskDefinition<I, O>,
-    input: I,
-    options?: TaskOptions
-  ): TaskHandle<O>;
+  scheduleTask<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O>;
 
   /** Start a child workflow and wait for its result. */
   workflow<I, O>(

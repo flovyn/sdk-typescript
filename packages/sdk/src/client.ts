@@ -121,9 +121,7 @@ export interface StartWorkflowOptions {
  * ```
  */
 export class FlovynClient {
-  private readonly options: Required<
-    Pick<FlovynClientOptions, 'serverUrl' | 'orgId' | 'queue'>
-  > &
+  private readonly options: Required<Pick<FlovynClientOptions, 'serverUrl' | 'orgId' | 'queue'>> &
     FlovynClientOptions;
   private readonly logger: Logger;
   private nativeClient: NapiClientInstance | null = null;

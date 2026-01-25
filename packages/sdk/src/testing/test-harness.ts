@@ -231,9 +231,7 @@ export class TestHarness {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    throw new Error(
-      `Server did not become healthy within ${this.config.healthCheckTimeout}ms`
-    );
+    throw new Error(`Server did not become healthy within ${this.config.healthCheckTimeout}ms`);
   }
 
   /**

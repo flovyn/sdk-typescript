@@ -132,9 +132,7 @@ class TaskDefinitionImpl<I, O> implements TaskDefinition<I, O> {
  * });
  * ```
  */
-export function task<I = unknown, O = unknown>(
-  config: TaskConfig<I, O>
-): TaskDefinition<I, O> {
+export function task<I = unknown, O = unknown>(config: TaskConfig<I, O>): TaskDefinition<I, O> {
   if (!config.name) {
     throw new Error('Task name is required');
   }

@@ -59,18 +59,14 @@ function getNativeBinaryName(): string {
 
   switch (platform) {
     case 'darwin':
-      return arch === 'arm64'
-        ? 'flovyn-native.darwin-arm64.node'
-        : 'flovyn-native.darwin-x64.node';
+      return arch === 'arm64' ? 'flovyn-native.darwin-arm64.node' : 'flovyn-native.darwin-x64.node';
     case 'linux':
       if (arch === 'arm64') {
         return isMusl()
           ? 'flovyn-native.linux-arm64-musl.node'
           : 'flovyn-native.linux-arm64-gnu.node';
       }
-      return isMusl()
-        ? 'flovyn-native.linux-x64-musl.node'
-        : 'flovyn-native.linux-x64-gnu.node';
+      return isMusl() ? 'flovyn-native.linux-x64-musl.node' : 'flovyn-native.linux-x64-gnu.node';
     case 'win32':
       return 'flovyn-native.win32-x64-msvc.node';
     default:
@@ -112,8 +108,7 @@ export function loadNativeModule(): unknown {
 
   // Get the directory where this file is located at runtime
   // __dirname works in CommonJS, for ESM we need a different approach
-  const baseDir =
-    typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+  const baseDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
   const simpleBinaryName = getSimpleBinaryName();
 
@@ -140,10 +135,7 @@ export function loadNativeModule(): unknown {
   }
 
   // Try local directory
-  const localPaths = [
-    join(baseDir, '..', binaryName),
-    join(baseDir, binaryName),
-  ];
+  const localPaths = [join(baseDir, '..', binaryName), join(baseDir, binaryName)];
 
   for (const localPath of localPaths) {
     if (existsSync(localPath)) {

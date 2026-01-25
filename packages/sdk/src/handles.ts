@@ -82,7 +82,10 @@ export class WorkflowHandleImpl<O> implements WorkflowHandle<O> {
               return this._result;
             }
 
-            if (event.eventType === 'WORKFLOW_EXECUTION_FAILED' || event.eventType === 'WORKFLOW_FAILED') {
+            if (
+              event.eventType === 'WORKFLOW_EXECUTION_FAILED' ||
+              event.eventType === 'WORKFLOW_FAILED'
+            ) {
               const error = event.data?.error ?? 'Workflow failed';
               throw new Error(error);
             }

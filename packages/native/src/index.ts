@@ -251,11 +251,7 @@ export interface NapiClientInstance {
     input: string,
     options?: StartWorkflowOptions
   ): Promise<StartWorkflowResult>;
-  queryWorkflow(
-    workflowId: string,
-    queryName: string,
-    args: string
-  ): Promise<string>;
+  queryWorkflow(workflowId: string, queryName: string, args: string): Promise<string>;
   resolvePromise(promiseId: string, value: string): Promise<void>;
   rejectPromise(promiseId: string, error: string): Promise<void>;
   readonly serverUrl: string;
@@ -263,12 +259,7 @@ export interface NapiClientInstance {
 }
 
 export interface NapiWorkflowContextInstance {
-  scheduleTask(
-    kind: string,
-    input: string,
-    queue?: string,
-    timeoutMs?: number
-  ): TaskResult;
+  scheduleTask(kind: string, input: string, queue?: string, timeoutMs?: number): TaskResult;
   createPromise(name: string, timeoutMs?: number): PromiseResult;
   startTimer(durationMs: number): TimerResult;
   scheduleChildWorkflow(

@@ -174,10 +174,16 @@ export class MockWorkflowContext implements WorkflowContext {
     return result;
   }
 
-  async taskByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O> {
+  async taskByName<O = unknown>(
+    taskName: string,
+    input: unknown,
+    options?: TaskOptions
+  ): Promise<O> {
     const results = this._taskResults.get(taskName);
     if (!results || results.length === 0) {
-      throw new Error(`No mocked result for task "${taskName}". Call mockTaskResultByName() first.`);
+      throw new Error(
+        `No mocked result for task "${taskName}". Call mockTaskResultByName() first.`
+      );
     }
 
     const result = results.shift() as O;
@@ -194,7 +200,11 @@ export class MockWorkflowContext implements WorkflowContext {
     this._taskResults.set(taskName, existing);
   }
 
-  scheduleTask<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O> {
+  scheduleTask<I, O>(
+    taskDef: TaskDefinition<I, O>,
+    input: I,
+    options?: TaskOptions
+  ): TaskHandle<O> {
     const results = this._taskResults.get(taskDef.name);
     if (!results || results.length === 0) {
       throw new Error(`No mocked result for task "${taskDef.name}". Call mockTaskResult() first.`);
@@ -264,7 +274,9 @@ export class MockWorkflowContext implements WorkflowContext {
   async promise<T>(name: string, options?: PromiseOptions): Promise<T> {
     const resolution = this._promiseResolutions.get(name);
     if (!resolution) {
-      throw new Error(`No mocked resolution for promise "${name}". Call mockPromiseResolution() first.`);
+      throw new Error(
+        `No mocked resolution for promise "${name}". Call mockPromiseResolution() first.`
+      );
     }
 
     this.createdPromises.push({

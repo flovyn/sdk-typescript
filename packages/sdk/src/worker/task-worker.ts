@@ -4,11 +4,7 @@
  * Polls for task activations and executes registered tasks.
  */
 
-import type {
-  NapiWorkerInstance,
-  TaskActivationData,
-  TaskCompletion,
-} from '@flovyn/native';
+import type { NapiWorkerInstance, TaskActivationData, TaskCompletion } from '@flovyn/native';
 import type { TaskDefinition, Logger } from '../types';
 import { TaskContextImpl } from '../context/task-context';
 import { TaskCancelled, TaskFailed } from '../errors';
@@ -158,11 +154,7 @@ export class TaskWorker {
     // Find the registered task
     const taskDef = this.tasks.get(taskKind);
     if (!taskDef) {
-      await this.completeWithFailure(
-        taskExecutionId,
-        `Unknown task type: ${taskKind}`,
-        false
-      );
+      await this.completeWithFailure(taskExecutionId, `Unknown task type: ${taskKind}`, false);
       return;
     }
 

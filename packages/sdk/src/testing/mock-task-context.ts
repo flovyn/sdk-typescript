@@ -74,36 +74,28 @@ export class MockTaskContext implements TaskContext {
    * Get streamed tokens.
    */
   get streamedTokens(): string[] {
-    return this.streamEvents
-      .filter((e) => e.type === 'token')
-      .map((e) => e.value as string);
+    return this.streamEvents.filter((e) => e.type === 'token').map((e) => e.value as string);
   }
 
   /**
    * Get streamed progress values.
    */
   get streamedProgress(): number[] {
-    return this.streamEvents
-      .filter((e) => e.type === 'progress')
-      .map((e) => e.value as number);
+    return this.streamEvents.filter((e) => e.type === 'progress').map((e) => e.value as number);
   }
 
   /**
    * Get streamed data.
    */
   get streamedData(): unknown[] {
-    return this.streamEvents
-      .filter((e) => e.type === 'data')
-      .map((e) => e.value);
+    return this.streamEvents.filter((e) => e.type === 'data').map((e) => e.value);
   }
 
   /**
    * Get streamed errors.
    */
   get streamedErrors(): string[] {
-    return this.streamEvents
-      .filter((e) => e.type === 'error')
-      .map((e) => e.value as string);
+    return this.streamEvents.filter((e) => e.type === 'error').map((e) => e.value as string);
   }
 
   // TaskContext implementation

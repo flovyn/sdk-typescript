@@ -10,10 +10,7 @@
  * - Deterministic randomness and time
  */
 
-import type {
-  NapiWorkflowContextInstance,
-  WorkflowActivationData,
-} from '@flovyn/native';
+import type { NapiWorkflowContextInstance, WorkflowActivationData } from '@flovyn/native';
 import { NapiWorkflowContext } from '@flovyn/native';
 import type {
   WorkflowContext,
@@ -175,7 +172,11 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Execute a task by name and wait for its result (untyped).
    */
-  async taskByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O> {
+  async taskByName<O = unknown>(
+    taskName: string,
+    input: unknown,
+    options?: TaskOptions
+  ): Promise<O> {
     const inputJson = serialize(input);
     const result = this.nativeCtx.scheduleTask(
       taskName,

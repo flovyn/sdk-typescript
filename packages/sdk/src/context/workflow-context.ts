@@ -162,17 +162,17 @@ export class WorkflowContextImpl implements WorkflowContext {
   }
 
   /**
-   * Execute a task and wait for its result.
+   * Schedule a task and wait for its result.
    */
-  async task<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
-    const handle = this.scheduleTask(taskDef, input, options);
+  async schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
+    const handle = this.scheduleAsync(taskDef, input, options);
     return handle.result();
   }
 
   /**
-   * Execute a task by name and wait for its result (untyped).
+   * Schedule a task by name and wait for its result (untyped).
    */
-  async taskByName<O = unknown>(
+  async scheduleByName<O = unknown>(
     taskName: string,
     input: unknown,
     options?: TaskOptions
@@ -212,7 +212,7 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Schedule a task for execution and return a handle.
    */
-  scheduleTask<I, O>(
+  scheduleAsync<I, O>(
     taskDef: TaskDefinition<I, O>,
     input: I,
     options?: TaskOptions
@@ -250,19 +250,19 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Start a child workflow and wait for its result.
    */
-  async workflow<I, O>(
+  async scheduleWorkflow<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
   ): Promise<O> {
-    const handle = this.scheduleWorkflow(workflowDef, input, options);
+    const handle = this.scheduleWorkflowAsync(workflowDef, input, options);
     return handle.result();
   }
 
   /**
    * Schedule a child workflow and return a handle.
    */
-  scheduleWorkflow<I, O>(
+  scheduleWorkflowAsync<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
@@ -373,7 +373,7 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Get a value from workflow state.
    */
-  getState<T>(key: string): T | null {
+  get<T>(key: string): T | null {
     const value = this.nativeCtx.getState(key);
     if (value === null) {
       return null;
@@ -384,15 +384,29 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Set a value in workflow state.
    */
-  setState<T>(key: string, value: T): void {
+  set<T>(key: string, value: T): void {
     this.nativeCtx.setState(key, serialize(value));
   }
 
   /**
    * Clear a value from workflow state.
    */
-  clearState(key: string): void {
+  clear(key: string): void {
     this.nativeCtx.clearState(key);
+  }
+
+  /**
+   * Clear all workflow state.
+   */
+  clearAll(): void {
+    this.nativeCtx.clearAll();
+  }
+
+  /**
+   * Get all state keys.
+   */
+  stateKeys(): string[] {
+    return this.nativeCtx.stateKeys();
   }
 
   /**

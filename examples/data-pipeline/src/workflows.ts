@@ -61,16 +61,16 @@ export const simplePipelineWorkflow = workflow<PipelineConfig, PipelineResult>({
 
   handlers: {
     queries: {
-      progress: (ctx) => ctx.getState<number>('progress') ?? 0,
-      status: (ctx) => ctx.getState<string>('status') ?? 'pending',
-      stats: (ctx) => ctx.getState<Record<string, unknown>>('stats'),
+      progress: (ctx) => ctx.get<number>('progress') ?? 0,
+      status: (ctx) => ctx.get<string>('status') ?? 'pending',
+      stats: (ctx) => ctx.get<Record<string, unknown>>('stats'),
     },
   },
 
   async run(ctx, config) {
     ctx.log.info('Starting simple pipeline', { config });
-    ctx.setState('status', 'running');
-    ctx.setState('progress', 0);
+    ctx.set('status', 'running');
+    ctx.set('progress', 0);
 
     const allResults: ProcessedRecord[] = [];
     const allFailures: Array<{ recordId: string; error: string }> = [];
@@ -84,8 +84,8 @@ export const simplePipelineWorkflow = workflow<PipelineConfig, PipelineResult>({
       ctx.log.info(`Processing batch ${batchNumber}`, { offset });
 
       // Fetch batch
-      ctx.setState('status', `fetching_batch_${batchNumber}`);
-      const fetchResult = await ctx.task(fetchDataTask, {
+      ctx.set('status', `fetching_batch_${batchNumber}`);
+      const fetchResult = await ctx.schedule(fetchDataTask, {
         source: config.source,
         batchSize: config.batchSize,
         offset,
@@ -96,8 +96,8 @@ export const simplePipelineWorkflow = workflow<PipelineConfig, PipelineResult>({
       }
 
       // Process batch
-      ctx.setState('status', `processing_batch_${batchNumber}`);
-      const processResult = await ctx.task(processBatchTask, {
+      ctx.set('status', `processing_batch_${batchNumber}`);
+      const processResult = await ctx.schedule(processBatchTask, {
         records: fetchResult.records,
         transformations: config.transformations,
         continueOnError: config.continueOnError,
@@ -107,7 +107,7 @@ export const simplePipelineWorkflow = workflow<PipelineConfig, PipelineResult>({
       allFailures.push(...processResult.failed);
 
       // Update progress
-      ctx.setState('stats', {
+      ctx.set('stats', {
         batchesProcessed: batchNumber,
         recordsProcessed: allResults.length,
         recordsFailed: allFailures.length,
@@ -118,22 +118,22 @@ export const simplePipelineWorkflow = workflow<PipelineConfig, PipelineResult>({
     }
 
     // Aggregate results
-    ctx.setState('status', 'aggregating');
-    const aggregation = await ctx.task(aggregateResultsTask, {
+    ctx.set('status', 'aggregating');
+    const aggregation = await ctx.schedule(aggregateResultsTask, {
       results: allResults,
       groupBy: 'category',
     });
 
     // Write results
-    ctx.setState('status', 'writing_results');
-    const writeResult = await ctx.task(writeResultsTask, {
+    ctx.set('status', 'writing_results');
+    const writeResult = await ctx.schedule(writeResultsTask, {
       results: allResults,
       destination: config.destination,
       format: config.outputFormat,
     });
 
-    ctx.setState('status', 'completed');
-    ctx.setState('progress', 100);
+    ctx.set('status', 'completed');
+    ctx.set('progress', 100);
 
     return {
       totalRecords: allResults.length + allFailures.length,
@@ -159,14 +159,14 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
 
   handlers: {
     queries: {
-      progress: (ctx) => ctx.getState<number>('progress') ?? 0,
-      status: (ctx) => ctx.getState<string>('status') ?? 'pending',
+      progress: (ctx) => ctx.get<number>('progress') ?? 0,
+      status: (ctx) => ctx.get<string>('status') ?? 'pending',
     },
   },
 
   async run(ctx, config) {
     ctx.log.info('Starting parallel pipeline', { config });
-    ctx.setState('status', 'running');
+    ctx.set('status', 'running');
 
     const allResults: ProcessedRecord[] = [];
     const allFailures: Array<{ recordId: string; error: string }> = [];
@@ -175,8 +175,8 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
 
     while (hasMore) {
       // Fetch batch
-      ctx.setState('status', 'fetching');
-      const fetchResult = await ctx.task(fetchDataTask, {
+      ctx.set('status', 'fetching');
+      const fetchResult = await ctx.schedule(fetchDataTask, {
         source: config.source,
         batchSize: config.batchSize,
         offset,
@@ -187,7 +187,7 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
       }
 
       // Process records in parallel (fan-out)
-      ctx.setState('status', 'processing_parallel');
+      ctx.set('status', 'processing_parallel');
       const records = fetchResult.records;
 
       // Split into chunks based on parallelism
@@ -195,7 +195,7 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
 
       // Schedule all chunk processing tasks
       const handles = chunks.map((chunk, i) =>
-        ctx.scheduleTask(processBatchTask, {
+        ctx.scheduleAsync(processBatchTask, {
           records: chunk,
           transformations: config.transformations,
           continueOnError: config.continueOnError,
@@ -214,20 +214,20 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
     }
 
     // Aggregate and write (same as simple pipeline)
-    ctx.setState('status', 'aggregating');
-    const aggregation = await ctx.task(aggregateResultsTask, {
+    ctx.set('status', 'aggregating');
+    const aggregation = await ctx.schedule(aggregateResultsTask, {
       results: allResults,
       groupBy: 'category',
     });
 
-    ctx.setState('status', 'writing_results');
-    const writeResult = await ctx.task(writeResultsTask, {
+    ctx.set('status', 'writing_results');
+    const writeResult = await ctx.schedule(writeResultsTask, {
       results: allResults,
       destination: config.destination,
       format: config.outputFormat,
     });
 
-    ctx.setState('status', 'completed');
+    ctx.set('status', 'completed');
 
     return {
       totalRecords: allResults.length + allFailures.length,
@@ -271,7 +271,7 @@ export const distributedPipelineWorkflow = workflow<PipelineConfig, PipelineResu
       batchNumber++;
 
       // Fetch to determine batch bounds
-      const fetchResult = await ctx.task(fetchDataTask, {
+      const fetchResult = await ctx.schedule(fetchDataTask, {
         source: config.source,
         batchSize: config.batchSize,
         offset,
@@ -282,7 +282,7 @@ export const distributedPipelineWorkflow = workflow<PipelineConfig, PipelineResu
       }
 
       // Schedule child workflow for this batch
-      const handle = ctx.scheduleWorkflow(batchProcessorWorkflow, {
+      const handle = ctx.scheduleWorkflowAsync(batchProcessorWorkflow, {
         source: config.source,
         batchSize: config.batchSize,
         offset,
@@ -307,12 +307,12 @@ export const distributedPipelineWorkflow = workflow<PipelineConfig, PipelineResu
     }
 
     // Aggregate and write
-    const aggregation = await ctx.task(aggregateResultsTask, {
+    const aggregation = await ctx.schedule(aggregateResultsTask, {
       results: allResults,
       groupBy: 'category',
     });
 
-    const writeResult = await ctx.task(writeResultsTask, {
+    const writeResult = await ctx.schedule(writeResultsTask, {
       results: allResults,
       destination: config.destination,
       format: config.outputFormat,
@@ -354,14 +354,14 @@ export const batchProcessorWorkflow = workflow<BatchProcessorInput, BatchProcess
     ctx.log.info('Processing batch', { offset: input.offset });
 
     // Fetch the batch
-    const fetchResult = await ctx.task(fetchDataTask, {
+    const fetchResult = await ctx.schedule(fetchDataTask, {
       source: input.source,
       batchSize: input.batchSize,
       offset: input.offset,
     });
 
     // Process the batch
-    const processResult = await ctx.task(processBatchTask, {
+    const processResult = await ctx.schedule(processBatchTask, {
       records: fetchResult.records,
       transformations: input.transformations,
       continueOnError: input.continueOnError,
@@ -403,7 +403,7 @@ export const errorRecoveryPipelineWorkflow = workflow({
 
       try {
         // Run the pipeline
-        const result = await ctx.workflow(simplePipelineWorkflow, {
+        const result = await ctx.scheduleWorkflow(simplePipelineWorkflow, {
           source: input.source,
           destination: input.destination,
           batchSize: 20,

@@ -64,24 +64,24 @@ export interface TaskHooks<I = unknown, O = unknown> {
  * All operations on this context are replay-safe and deterministic.
  */
 export interface WorkflowContext {
-  /** Execute a task and wait for its result. */
-  task<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O>;
+  /** Schedule a task and wait for its result. */
+  schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O>;
 
-  /** Execute a task by name and wait for its result (untyped). */
-  taskByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O>;
+  /** Schedule a task by name and wait for its result (untyped). */
+  scheduleByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O>;
 
   /** Schedule a task for execution and return a handle. */
-  scheduleTask<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O>;
+  scheduleAsync<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O>;
 
-  /** Start a child workflow and wait for its result. */
-  workflow<I, O>(
+  /** Schedule a child workflow and wait for its result. */
+  scheduleWorkflow<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
   ): Promise<O>;
 
   /** Schedule a child workflow and return a handle. */
-  scheduleWorkflow<I, O>(
+  scheduleWorkflowAsync<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
@@ -100,13 +100,19 @@ export interface WorkflowContext {
   run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T>;
 
   /** Get a value from workflow state. */
-  getState<T>(key: string): T | null;
+  get<T>(key: string): T | null;
 
   /** Set a value in workflow state. */
-  setState<T>(key: string, value: T): void;
+  set<T>(key: string, value: T): void;
 
   /** Clear a value from workflow state. */
-  clearState(key: string): void;
+  clear(key: string): void;
+
+  /** Clear all workflow state. */
+  clearAll(): void;
+
+  /** Get all state keys. */
+  stateKeys(): string[];
 
   /** Get the current workflow time (deterministic). */
   currentTime(): Date;
@@ -134,6 +140,20 @@ export interface WorkflowContext {
 }
 
 /**
+ * Stream event types for task streaming.
+ */
+export type StreamEventType = 'token' | 'progress' | 'data' | 'error';
+
+/**
+ * Stream event discriminated union for task streaming.
+ */
+export type StreamEvent =
+  | { type: 'token'; text: string }
+  | { type: 'progress'; progress: number; details?: string }
+  | { type: 'data'; data: unknown }
+  | { type: 'error'; message: string; code?: string };
+
+/**
  * Task context available during task execution.
  */
 export interface TaskContext {
@@ -148,6 +168,9 @@ export interface TaskContext {
 
   /** Get a cancellation error to throw. */
   cancellationError(): Error;
+
+  /** Stream an event to connected clients. */
+  stream(event: StreamEvent): void;
 
   /** Stream a token (for LLM-style streaming). */
   streamToken(token: string): void;

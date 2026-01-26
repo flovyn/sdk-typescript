@@ -94,13 +94,13 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
 
   handlers: {
     queries: {
-      status: (ctx) => ctx.getState<OrderStatus>('status') ?? 'pending',
-      compensation: (ctx) => ctx.getState<CompensationState>('compensation'),
+      status: (ctx) => ctx.get<OrderStatus>('status') ?? 'pending',
+      compensation: (ctx) => ctx.get<CompensationState>('compensation'),
     },
     signals: {
       cancel: (ctx, payload?: { reason?: string }) => {
-        ctx.setState('cancelRequested', true);
-        ctx.setState('cancelReason', payload?.reason ?? 'Cancelled by user');
+        ctx.set('cancelRequested', true);
+        ctx.set('cancelReason', payload?.reason ?? 'Cancelled by user');
       },
     },
   },
@@ -115,16 +115,16 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
       inventoryReserved: false,
       paymentCharged: false,
     };
-    ctx.setState('compensation', compensation);
-    ctx.setState('status', 'pending' as OrderStatus);
+    ctx.set('compensation', compensation);
+    ctx.set('status', 'pending' as OrderStatus);
 
     try {
       // Step 1: Validate order
-      ctx.setState('status', 'validating' as OrderStatus);
-      const validation = await ctx.task(validateOrderTask, { order });
+      ctx.set('status', 'validating' as OrderStatus);
+      const validation = await ctx.schedule(validateOrderTask, { order });
 
       if (!validation.valid) {
-        ctx.setState('status', 'failed' as OrderStatus);
+        ctx.set('status', 'failed' as OrderStatus);
         return {
           orderId: order.orderId,
           status: 'failed' as OrderStatus,
@@ -138,10 +138,10 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
 
       // Step 2: Approval for high-value orders
       if (requireApproval) {
-        ctx.setState('status', 'awaiting_approval' as OrderStatus);
+        ctx.set('status', 'awaiting_approval' as OrderStatus);
 
         // Notify that approval is required
-        await ctx.task(sendNotificationTask, {
+        await ctx.schedule(sendNotificationTask, {
           customerId: order.customerId,
           type: 'approval_required',
           orderId: order.orderId,
@@ -158,7 +158,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
           });
         } catch (error) {
           // Timeout or rejection
-          ctx.setState('status', 'failed' as OrderStatus);
+          ctx.set('status', 'failed' as OrderStatus);
           return {
             orderId: order.orderId,
             status: 'failed' as OrderStatus,
@@ -168,7 +168,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
         }
 
         if (!decision.approved) {
-          ctx.setState('status', 'rejected' as OrderStatus);
+          ctx.set('status', 'rejected' as OrderStatus);
           ctx.log.info('Order rejected', {
             reason: decision.reason,
             rejectedBy: decision.approvedBy,
@@ -181,29 +181,29 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
           };
         }
 
-        ctx.setState('status', 'approved' as OrderStatus);
+        ctx.set('status', 'approved' as OrderStatus);
         ctx.log.info('Order approved', { approvedBy: decision.approvedBy });
       }
 
       // Check for cancellation before proceeding
-      if (ctx.getState<boolean>('cancelRequested')) {
+      if (ctx.get<boolean>('cancelRequested')) {
         return {
           orderId: order.orderId,
           status: 'cancelled' as OrderStatus,
-          failureReason: ctx.getState<string>('cancelReason') ?? undefined,
+          failureReason: ctx.get<string>('cancelReason') ?? undefined,
           compensationApplied: false,
         };
       }
 
       // Step 3: Reserve inventory
-      ctx.setState('status', 'reserving_inventory' as OrderStatus);
-      const inventoryResult = await ctx.task(reserveInventoryTask, {
+      ctx.set('status', 'reserving_inventory' as OrderStatus);
+      const inventoryResult = await ctx.schedule(reserveInventoryTask, {
         orderId: order.orderId,
         items: order.items,
       });
 
       if (!inventoryResult.reserved) {
-        ctx.setState('status', 'failed' as OrderStatus);
+        ctx.set('status', 'failed' as OrderStatus);
         return {
           orderId: order.orderId,
           status: 'failed' as OrderStatus,
@@ -215,11 +215,11 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
       // Track for compensation
       compensation.inventoryReserved = true;
       compensation.reservationId = inventoryResult.reservationId;
-      ctx.setState('compensation', compensation);
+      ctx.set('compensation', compensation);
 
       // Step 4: Charge payment
-      ctx.setState('status', 'charging_payment' as OrderStatus);
-      const paymentResult = await ctx.task(chargePaymentTask, {
+      ctx.set('status', 'charging_payment' as OrderStatus);
+      const paymentResult = await ctx.schedule(chargePaymentTask, {
         orderId: order.orderId,
         customerId: order.customerId,
         amount: totalAmount,
@@ -227,14 +227,14 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
 
       if (!paymentResult.charged) {
         // Payment failed - compensate by releasing inventory
-        ctx.setState('status', 'compensating' as OrderStatus);
+        ctx.set('status', 'compensating' as OrderStatus);
         ctx.log.warn('Payment failed, compensating', {
           reason: paymentResult.failureReason,
         });
 
         await compensate(ctx, compensation);
 
-        ctx.setState('status', 'failed' as OrderStatus);
+        ctx.set('status', 'failed' as OrderStatus);
         return {
           orderId: order.orderId,
           status: 'failed' as OrderStatus,
@@ -247,40 +247,40 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
       compensation.paymentCharged = true;
       compensation.transactionId = paymentResult.transactionId;
       compensation.amount = totalAmount;
-      ctx.setState('compensation', compensation);
+      ctx.set('compensation', compensation);
 
       // Check for cancellation before shipping
-      if (ctx.getState<boolean>('cancelRequested')) {
-        ctx.setState('status', 'compensating' as OrderStatus);
+      if (ctx.get<boolean>('cancelRequested')) {
+        ctx.set('status', 'compensating' as OrderStatus);
         await compensate(ctx, compensation);
         return {
           orderId: order.orderId,
           status: 'cancelled' as OrderStatus,
-          failureReason: ctx.getState<string>('cancelReason') ?? undefined,
+          failureReason: ctx.get<string>('cancelReason') ?? undefined,
           compensationApplied: true,
         };
       }
 
       // Step 5: Create shipment
-      ctx.setState('status', 'creating_shipment' as OrderStatus);
+      ctx.set('status', 'creating_shipment' as OrderStatus);
       let shipmentResult;
 
       try {
-        shipmentResult = await ctx.task(createShipmentTask, {
+        shipmentResult = await ctx.schedule(createShipmentTask, {
           orderId: order.orderId,
           shippingAddress: order.shippingAddress,
           items: order.items,
         });
       } catch (error) {
         // Shipment failed - compensate
-        ctx.setState('status', 'compensating' as OrderStatus);
+        ctx.set('status', 'compensating' as OrderStatus);
         ctx.log.warn('Shipment creation failed, compensating', {
           error: String(error),
         });
 
         await compensate(ctx, compensation);
 
-        ctx.setState('status', 'failed' as OrderStatus);
+        ctx.set('status', 'failed' as OrderStatus);
         return {
           orderId: order.orderId,
           status: 'failed' as OrderStatus,
@@ -290,7 +290,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
       }
 
       // Step 6: Send confirmation notification
-      await ctx.task(sendNotificationTask, {
+      await ctx.schedule(sendNotificationTask, {
         customerId: order.customerId,
         type: 'order_shipped',
         orderId: order.orderId,
@@ -300,7 +300,7 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
         },
       });
 
-      ctx.setState('status', 'completed' as OrderStatus);
+      ctx.set('status', 'completed' as OrderStatus);
       ctx.log.info('Order processing completed', {
         orderId: order.orderId,
         trackingNumber: shipmentResult.trackingNumber,
@@ -320,10 +320,10 @@ export const processOrderWorkflow = workflow<ProcessOrderInput, ProcessOrderOutp
         error: String(error),
       });
 
-      ctx.setState('status', 'compensating' as OrderStatus);
+      ctx.set('status', 'compensating' as OrderStatus);
       await compensate(ctx, compensation);
 
-      ctx.setState('status', 'failed' as OrderStatus);
+      ctx.set('status', 'failed' as OrderStatus);
       return {
         orderId: order.orderId,
         status: 'failed' as OrderStatus,
@@ -347,7 +347,7 @@ async function compensate(
   // Refund payment first (if charged)
   if (state.paymentCharged && state.transactionId && state.amount) {
     try {
-      await ctx.task(refundPaymentTask, {
+      await ctx.schedule(refundPaymentTask, {
         transactionId: state.transactionId,
         amount: state.amount,
         reason: 'Order cancelled or failed',
@@ -362,7 +362,7 @@ async function compensate(
   // Release inventory (if reserved)
   if (state.inventoryReserved && state.reservationId) {
     try {
-      await ctx.task(releaseInventoryTask, {
+      await ctx.schedule(releaseInventoryTask, {
         reservationId: state.reservationId,
       });
       ctx.log.info('Inventory released');
@@ -385,7 +385,7 @@ export const quickOrderWorkflow = workflow({
 
   async run(ctx, input: { order: Order }) {
     // Delegate to the main workflow without approval
-    return ctx.workflow(processOrderWorkflow, {
+    return ctx.scheduleWorkflow(processOrderWorkflow, {
       order: input.order,
       requireApproval: false,
     });

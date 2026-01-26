@@ -39,13 +39,13 @@ export const greetingWorkflow = workflow<GreetingWorkflowInput, GreetingWorkflow
     queries: {
       // Query to get the current status
       status: (ctx) => {
-        return ctx.getState<string>('status') ?? 'unknown';
+        return ctx.get<string>('status') ?? 'unknown';
       },
     },
     signals: {
       // Signal to request email sending
       sendEmail: (ctx, payload: { email: string }) => {
-        ctx.setState('pendingEmail', payload.email);
+        ctx.set('pendingEmail', payload.email);
       },
     },
   },
@@ -54,10 +54,10 @@ export const greetingWorkflow = workflow<GreetingWorkflowInput, GreetingWorkflow
     ctx.log.info('Starting greeting workflow', { name: input.name });
 
     // Set initial status
-    ctx.setState('status', 'processing');
+    ctx.set('status', 'processing');
 
     // Generate greeting using a task
-    const greeting = await ctx.task(greetTask, {
+    const greeting = await ctx.schedule(greetTask, {
       name: input.name,
       language: 'en',
     });
@@ -69,10 +69,10 @@ export const greetingWorkflow = workflow<GreetingWorkflowInput, GreetingWorkflow
     let emailMessageId: string | undefined;
 
     if (input.sendEmail && input.email) {
-      ctx.setState('status', 'sending_email');
+      ctx.set('status', 'sending_email');
 
       // Send the email
-      const emailResult = await ctx.task(sendEmailTask, {
+      const emailResult = await ctx.schedule(sendEmailTask, {
         to: input.email,
         subject: 'Greetings!',
         body: greeting.message,
@@ -83,11 +83,11 @@ export const greetingWorkflow = workflow<GreetingWorkflowInput, GreetingWorkflow
     }
 
     // Check for any pending email from signal
-    const pendingEmail = ctx.getState<string>('pendingEmail');
+    const pendingEmail = ctx.get<string>('pendingEmail');
     if (pendingEmail && !emailSent) {
-      ctx.setState('status', 'sending_pending_email');
+      ctx.set('status', 'sending_pending_email');
 
-      const emailResult = await ctx.task(sendEmailTask, {
+      const emailResult = await ctx.schedule(sendEmailTask, {
         to: pendingEmail,
         subject: 'Greetings!',
         body: greeting.message,
@@ -97,7 +97,7 @@ export const greetingWorkflow = workflow<GreetingWorkflowInput, GreetingWorkflow
       emailMessageId = emailResult.messageId;
     }
 
-    ctx.setState('status', 'completed');
+    ctx.set('status', 'completed');
 
     return {
       greeting,
@@ -134,7 +134,7 @@ export const countdownWorkflow = workflow<CountdownInput, CountdownOutput>({
   handlers: {
     queries: {
       currentCount: (ctx) => {
-        return ctx.getState<number>('currentCount') ?? 0;
+        return ctx.get<number>('currentCount') ?? 0;
       },
     },
   },
@@ -147,7 +147,7 @@ export const countdownWorkflow = workflow<CountdownInput, CountdownOutput>({
       ctx.checkCancellation();
 
       // Store current count in state (queryable)
-      ctx.setState('currentCount', i);
+      ctx.set('currentCount', i);
 
       ctx.log.info(`Countdown: ${i}`);
 
@@ -155,7 +155,7 @@ export const countdownWorkflow = workflow<CountdownInput, CountdownOutput>({
       await ctx.sleep(Duration.seconds(input.delaySeconds));
     }
 
-    ctx.setState('currentCount', 0);
+    ctx.set('currentCount', 0);
     ctx.log.info('Countdown complete!');
 
     return {
@@ -180,7 +180,7 @@ export const parentWorkflow = workflow({
 
     for (const name of input.names) {
       // Start child workflow and wait for result
-      const result = await ctx.workflow(greetingWorkflow, {
+      const result = await ctx.scheduleWorkflow(greetingWorkflow, {
         name,
         sendEmail: false,
       });

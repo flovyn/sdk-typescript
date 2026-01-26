@@ -163,7 +163,7 @@ export class MockWorkflowContext implements WorkflowContext {
 
   // WorkflowContext implementation
 
-  async task<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
+  async schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
     const results = this._taskResults.get(taskDef.name);
     if (!results || results.length === 0) {
       throw new Error(`No mocked result for task "${taskDef.name}". Call mockTaskResult() first.`);
@@ -174,7 +174,7 @@ export class MockWorkflowContext implements WorkflowContext {
     return result;
   }
 
-  async taskByName<O = unknown>(
+  async scheduleByName<O = unknown>(
     taskName: string,
     input: unknown,
     options?: TaskOptions
@@ -200,7 +200,7 @@ export class MockWorkflowContext implements WorkflowContext {
     this._taskResults.set(taskName, existing);
   }
 
-  scheduleTask<I, O>(
+  scheduleAsync<I, O>(
     taskDef: TaskDefinition<I, O>,
     input: I,
     options?: TaskOptions
@@ -219,7 +219,7 @@ export class MockWorkflowContext implements WorkflowContext {
     };
   }
 
-  async workflow<I, O>(
+  async scheduleWorkflow<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
@@ -236,7 +236,7 @@ export class MockWorkflowContext implements WorkflowContext {
     return result;
   }
 
-  scheduleWorkflow<I, O>(
+  scheduleWorkflowAsync<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
@@ -308,16 +308,24 @@ export class MockWorkflowContext implements WorkflowContext {
     return result;
   }
 
-  getState<T>(key: string): T | null {
+  get<T>(key: string): T | null {
     return (this._state.get(key) as T) ?? null;
   }
 
-  setState<T>(key: string, value: T): void {
+  set<T>(key: string, value: T): void {
     this._state.set(key, value);
   }
 
-  clearState(key: string): void {
+  clear(key: string): void {
     this._state.delete(key);
+  }
+
+  clearAll(): void {
+    this._state.clear();
+  }
+
+  stateKeys(): string[] {
+    return Array.from(this._state.keys());
   }
 
   currentTime(): Date {

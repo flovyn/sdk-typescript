@@ -13,7 +13,7 @@
  * ```
  */
 
-import type { TaskContext, Logger } from '../types';
+import type { TaskContext, Logger, StreamEvent } from '../types';
 
 /**
  * Tracked stream event.
@@ -120,6 +120,23 @@ export class MockTaskContext implements TaskContext {
 
   cancellationError(): Error {
     return new Error(`Task ${this.taskExecutionId} was cancelled`);
+  }
+
+  stream(event: StreamEvent): void {
+    switch (event.type) {
+      case 'token':
+        this.streamToken(event.text);
+        break;
+      case 'progress':
+        this.streamProgress(event.progress);
+        break;
+      case 'data':
+        this.streamData(event.data);
+        break;
+      case 'error':
+        this.streamError(event.message);
+        break;
+    }
   }
 
   streamToken(token: string): void {

@@ -277,6 +277,8 @@ export interface NapiWorkflowContextInstance {
   getState(key: string): string | null;
   setState(key: string, value: string): void;
   clearState(key: string): void;
+  stateKeys(): string[];
+  clearAll(): void;
   isCancellationRequested(): boolean;
   getCommandsJson(): string;
   takeCommands(): string;

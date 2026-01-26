@@ -89,7 +89,7 @@ describe('Typed API E2E Tests', () => {
     /**
      * Test workflow that uses typed API internally to execute a task.
      *
-     * This verifies that ctx.task(TaskDefinition, input) works within a workflow.
+     * This verifies that ctx.schedule(TaskDefinition, input) works within a workflow.
      */
     // The typedTaskWorkflow internally uses addTask definition instead of string
     const input: TypedTaskInput = { a: 10, b: 32 };

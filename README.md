@@ -89,18 +89,18 @@ const processOrderWorkflow = workflow<OrderInput, OrderOutput>({
     ctx.log.info('Processing order', { orderId: input.orderId });
 
     // Schedule a task
-    const priceResult = await ctx.task(calculatePriceTask, {
+    const priceResult = await ctx.schedule(calculatePriceTask, {
       items: input.items,
     });
 
     // Store state (survives restarts)
-    ctx.setState('total', priceResult.total);
+    ctx.set('total', priceResult.total);
 
     // Wait for payment (durable timer)
     await ctx.sleep(Duration.seconds(5));
 
     // Send confirmation email
-    await ctx.task(sendEmailTask, {
+    await ctx.schedule(sendEmailTask, {
       to: input.customerEmail,
       subject: 'Order Confirmed',
       body: `Your order ${input.orderId} has been processed.`,
@@ -150,15 +150,19 @@ await client.stop();
 The workflow context provides deterministic operations:
 
 ```typescript
-// Execute a task
-const result = await ctx.task(myTask, input);
+// Execute a task and await result
+const result = await ctx.schedule(myTask, input);
 
-// Schedule a task (non-blocking)
-const handle = ctx.scheduleTask(myTask, input);
+// Schedule a task (non-blocking, returns handle)
+const handle = ctx.scheduleAsync(myTask, input);
 const result = await handle.result();
 
-// Start a child workflow
-const childResult = await ctx.workflow(childWorkflow, input);
+// Start a child workflow and await result
+const childResult = await ctx.scheduleWorkflow(childWorkflow, input);
+
+// Start a child workflow (non-blocking, returns handle)
+const childHandle = ctx.scheduleWorkflowAsync(childWorkflow, input);
+const childResult = await childHandle.result();
 
 // Durable timer
 await ctx.sleep(Duration.minutes(5));
@@ -175,9 +179,11 @@ const apiResult = await ctx.run('fetch-data', async () => {
 });
 
 // State management
-ctx.setState('key', value);
-const value = ctx.getState<T>('key');
-ctx.clearState('key');
+ctx.set('key', value);
+const value = ctx.get<T>('key');
+ctx.clear('key');
+ctx.clearAll();
+const keys = ctx.stateKeys();
 
 // Deterministic time and randomness
 const now = ctx.currentTime();

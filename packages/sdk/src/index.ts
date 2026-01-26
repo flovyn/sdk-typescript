@@ -18,7 +18,7 @@
  * const greetingWorkflow = workflow({
  *   name: 'greeting-workflow',
  *   async run(ctx, input: { name: string }) {
- *     const result = await ctx.task(greetTask, input);
+ *     const result = await ctx.schedule(greetTask, input);
  *     return result;
  *   },
  * });
@@ -56,4 +56,4 @@ export { serialize, deserialize, type Serializer, JsonSerializer } from './serde
 
 // Context implementations (internal but exported for advanced use cases)
 export { WorkflowContextImpl } from './context/workflow-context';
-export { TaskContextImpl, type StreamEvent, type StreamEventType } from './context/task-context';
+export { TaskContextImpl, type InternalStreamEvent } from './context/task-context';

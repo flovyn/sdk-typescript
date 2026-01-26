@@ -23,7 +23,7 @@
  *   description: 'Process a customer order',
  *   async run(ctx, input) {
  *     // Schedule tasks, use timers, etc.
- *     const result = await ctx.task(calculateTotal, { items: input.items });
+ *     const result = await ctx.schedule(calculateTotal, { items: input.items });
  *     return { status: 'completed', total: result.total };
  *   },
  * });
@@ -113,7 +113,7 @@ class WorkflowDefinitionImpl<I, O> implements WorkflowDefinition<I, O> {
  *   name: 'my-workflow',
  *   async run(ctx, input: { value: number }) {
  *     // Use context for all operations
- *     const doubled = await ctx.task(doubleTask, { value: input.value });
+ *     const doubled = await ctx.schedule(doubleTask, { value: input.value });
  *     await ctx.sleep(Duration.seconds(5));
  *     return { result: doubled.value };
  *   },

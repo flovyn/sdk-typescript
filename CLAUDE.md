@@ -79,7 +79,7 @@ const myWorkflow = workflow({
   name: 'my-workflow',
   async run(ctx, input: MyInput): Promise<MyOutput> {
     // Use ctx for deterministic operations
-    const result = await ctx.task(myTask, { value: input.x });
+    const result = await ctx.schedule(myTask, { value: input.x });
     return { result: result.value };
   },
 });

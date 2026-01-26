@@ -236,14 +236,14 @@ export const statefulWorkflow = workflow<StatefulInput, StatefulOutput>({
   name: 'stateful-workflow',
   run: async (ctx, input) => {
     // Set state
-    ctx.setState(input.key, input.value);
+    ctx.set(input.key, input.value);
 
     // Get state back
-    const stored = ctx.getState<string>(input.key);
+    const stored = ctx.get<string>(input.key);
 
     // Get all keys (by checking the one we set)
     const keys: string[] = [];
-    if (ctx.getState(input.key) !== null) {
+    if (ctx.get(input.key) !== null) {
       keys.push(input.key);
     }
 
@@ -330,7 +330,7 @@ export const taskSchedulingWorkflow = workflow<TaskSchedulingInput, TaskScheduli
     let runningTotal = 0;
 
     for (let i = 0; i < input.count; i++) {
-      const result = await ctx.task(addTask, { a: runningTotal, b: i + 1 });
+      const result = await ctx.schedule(addTask, { a: runningTotal, b: i + 1 });
       runningTotal = result.sum;
       results.push(runningTotal);
     }
@@ -352,7 +352,7 @@ export const multiTaskWorkflow = workflow<TaskSchedulingInput, TaskSchedulingOut
     let total = 0;
 
     for (let i = 0; i < input.count; i++) {
-      const result = await ctx.task(addTask, { a: i, b: i });
+      const result = await ctx.schedule(addTask, { a: i, b: i });
       total += result.sum;
       results.push(result.sum);
     }
@@ -373,7 +373,7 @@ export const parallelTasksWorkflow = workflow<TaskSchedulingInput, TaskSchedulin
     // Schedule all tasks
     const handles = [];
     for (let i = 0; i < input.count; i++) {
-      const handle = ctx.scheduleTask(addTask, { a: i, b: i });
+      const handle = ctx.schedule(addTask, { a: i, b: i });
       handles.push(handle);
     }
 
@@ -400,7 +400,7 @@ export const childWorkflowWorkflow = workflow<ChildWorkflowInput, ChildWorkflowO
   name: 'child-workflow-workflow',
   run: async (ctx, input) => {
     // Execute the echo workflow as a child
-    const result = await ctx.workflow(echoWorkflow, {
+    const result = await ctx.scheduleWorkflow(echoWorkflow, {
       message: String(input.childInput),
     });
 
@@ -415,7 +415,7 @@ export const childFailureWorkflow = workflow<ChildFailureInput, ChildFailureOutp
   name: 'child-failure-workflow',
   run: async (ctx, input) => {
     try {
-      await ctx.workflow(failingWorkflow, {
+      await ctx.scheduleWorkflow(failingWorkflow, {
         errorMessage: input.errorMessage,
       });
       return { caughtError: '' };
@@ -436,7 +436,7 @@ export const nestedChildWorkflow: WorkflowDefinition<NestedChildInput, NestedChi
       return { result: `leaf:${input.value}`, levels: 1 };
     } else {
       // Recursive case: call child workflow with reduced depth
-      const childResult = await ctx.workflow(nestedChildWorkflow, {
+      const childResult = await ctx.scheduleWorkflow(nestedChildWorkflow, {
         depth: input.depth - 1,
         value: input.value,
       });
@@ -458,7 +458,7 @@ export const childLoopWorkflow = workflow<ChildLoopInput, ChildLoopOutput>({
 
     for (let i = 0; i < input.count; i++) {
       // Execute child echo workflow for each iteration
-      const result = await ctx.workflow(echoWorkflow, {
+      const result = await ctx.scheduleWorkflow(echoWorkflow, {
         message: `child-${i}`,
       });
       results.push(result.message);
@@ -484,7 +484,7 @@ export const mixedCommandsWorkflow = workflow<MixedCommandsInput, MixedCommandsO
     await ctx.sleep(Duration.milliseconds(100));
 
     // Step 3: Execute a task
-    const taskResult = await ctx.task(addTask, {
+    const taskResult = await ctx.schedule(addTask, {
       a: input.value,
       b: 10,
     });
@@ -510,7 +510,7 @@ export const fanOutFanInWorkflow = workflow<FanOutInput, FanOutOutput>({
     // Fan-out: Schedule all tasks in parallel
     const handles = [];
     for (const item of input.items) {
-      const handle = ctx.scheduleTask(echoTask, { message: item });
+      const handle = ctx.schedule(echoTask, { message: item });
       handles.push(handle);
     }
 
@@ -541,7 +541,7 @@ export const largeBatchWorkflow = workflow<LargeBatchInput, LargeBatchOutput>({
     // Schedule many tasks in parallel
     const handles = [];
     for (let i = 0; i < input.count; i++) {
-      const handle = ctx.scheduleTask(addTask, { a: i, b: 1 });
+      const handle = ctx.schedule(addTask, { a: i, b: 1 });
       handles.push(handle);
     }
 
@@ -568,8 +568,8 @@ export const mixedParallelWorkflow = workflow<Record<string, never>, MixedParall
   name: 'mixed-parallel-workflow',
   run: async (ctx) => {
     // Phase 1: Two parallel echo tasks
-    const handle1 = ctx.scheduleTask(echoTask, { message: 'task-1' });
-    const handle2 = ctx.scheduleTask(echoTask, { message: 'task-2' });
+    const handle1 = ctx.schedule(echoTask, { message: 'task-1' });
+    const handle2 = ctx.schedule(echoTask, { message: 'task-2' });
 
     const result1 = await handle1.result();
     const result2 = await handle2.result();
@@ -582,7 +582,7 @@ export const mixedParallelWorkflow = workflow<Record<string, never>, MixedParall
     // Phase 3: Three parallel add tasks
     const handles = [];
     for (let i = 0; i < 3; i++) {
-      const handle = ctx.scheduleTask(addTask, { a: i, b: i });
+      const handle = ctx.schedule(addTask, { a: i, b: i });
       handles.push(handle);
     }
 
@@ -624,11 +624,11 @@ export const comprehensiveWorkflow = workflow<ComprehensiveInput, ComprehensiveO
       message: 'state test',
       nested: { a: 1, b: 2 },
     };
-    ctx.setState(stateKey, stateValue);
+    ctx.set(stateKey, stateValue);
     testsPassed.push('state_set');
 
     // Test 4: State get (should return what we just set)
-    const retrieved = ctx.getState<{ counter: number; message: string; nested: { a: number; b: number } }>(stateKey);
+    const retrieved = ctx.get<{ counter: number; message: string; nested: { a: number; b: number } }>(stateKey);
 
     // Verify state matches
     const stateMatches = JSON.stringify(retrieved) === JSON.stringify(stateValue);
@@ -661,7 +661,7 @@ export const taskSchedulerWorkflow = workflow<TaskSchedulerInput, TaskSchedulerO
   name: 'task-scheduler-workflow',
   run: async (ctx, input) => {
     // Use the task name to schedule the appropriate task
-    const result = await ctx.taskByName(input.taskName, input.taskInput);
+    const result = await ctx.scheduleByName(input.taskName, input.taskInput);
 
     return {
       taskCompleted: true,
@@ -677,7 +677,7 @@ export const typedTaskWorkflow = workflow<TypedTaskInput, TypedTaskOutput>({
   name: 'typed-task-workflow',
   run: async (ctx, input) => {
     // Use the typed API: pass task definition instead of string
-    const result = await ctx.task(addTask, {
+    const result = await ctx.schedule(addTask, {
       a: input.a,
       b: input.b,
     });

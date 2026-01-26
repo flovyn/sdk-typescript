@@ -38,6 +38,8 @@ import { createWorkflowLogger } from '../workflow';
 
 /**
  * Internal task handle implementation.
+ *
+ * Implements PromiseLike so it can be awaited directly.
  */
 class TaskHandleImpl<O> implements TaskHandle<O> {
   private _result: Promise<O> | null = null;
@@ -69,10 +71,22 @@ class TaskHandleImpl<O> implements TaskHandle<O> {
     // Should not reach here
     throw new Error('Task in unexpected state');
   }
+
+  /**
+   * Implement PromiseLike to allow direct awaiting.
+   */
+  then<TResult1 = O, TResult2 = never>(
+    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
+    return this.result().then(onfulfilled, onrejected);
+  }
 }
 
 /**
  * Internal workflow handle implementation for child workflows.
+ *
+ * Implements PromiseLike so it can be awaited directly.
  */
 class ChildWorkflowHandleImpl<O> implements WorkflowHandle<O> {
   private _result: Promise<O> | null = null;
@@ -107,6 +121,16 @@ class ChildWorkflowHandleImpl<O> implements WorkflowHandle<O> {
     }
 
     throw new Error('Child workflow in unexpected state');
+  }
+
+  /**
+   * Implement PromiseLike to allow direct awaiting.
+   */
+  then<TResult1 = O, TResult2 = never>(
+    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
+    return this.result().then(onfulfilled, onrejected);
   }
 
   async query<T>(_queryName: string, _args?: unknown): Promise<T> {
@@ -162,17 +186,60 @@ export class WorkflowContextImpl implements WorkflowContext {
   }
 
   /**
-   * Execute a task and wait for its result.
+   * Schedule a task for execution.
+   *
+   * Returns a TaskHandle that can be awaited directly or used to access the task execution ID.
+   *
+   * @example
+   * // Await directly
+   * const result = await ctx.schedule(myTask, input);
+   *
+   * // Run tasks concurrently
+   * const [r1, r2] = await Promise.all([
+   *   ctx.schedule(task1, input1),
+   *   ctx.schedule(task2, input2),
+   * ]);
+   *
+   * // Access task execution ID
+   * const handle = ctx.schedule(myTask, input);
+   * console.log(handle.taskExecutionId);
+   * const result = await handle;
    */
-  async task<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
-    const handle = this.scheduleTask(taskDef, input, options);
-    return handle.result();
+  schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O> {
+    const inputJson = serialize(input);
+    const result = this.nativeCtx.scheduleTask(
+      taskDef.name,
+      inputJson,
+      options?.queue,
+      options?.timeout?.toMilliseconds()
+    );
+
+    const taskExecutionId = result.taskExecutionId ?? '';
+
+    return new TaskHandleImpl<O>(
+      this,
+      taskExecutionId,
+      () => {
+        if (result.status === 'completed' && result.output) {
+          return deserialize<O>(result.output);
+        }
+        if (result.status === 'failed') {
+          throw new TaskFailed(
+            result.error ?? 'Task failed',
+            taskExecutionId,
+            result.retryable ?? false
+          );
+        }
+        return null;
+      },
+      () => result.status === 'pending'
+    );
   }
 
   /**
-   * Execute a task by name and wait for its result (untyped).
+   * Schedule a task by name and wait for its result (untyped).
    */
-  async taskByName<O = unknown>(
+  async scheduleByName<O = unknown>(
     taskName: string,
     input: unknown,
     options?: TaskOptions
@@ -210,57 +277,24 @@ export class WorkflowContextImpl implements WorkflowContext {
   }
 
   /**
-   * Schedule a task for execution and return a handle.
-   */
-  scheduleTask<I, O>(
-    taskDef: TaskDefinition<I, O>,
-    input: I,
-    options?: TaskOptions
-  ): TaskHandle<O> {
-    const inputJson = serialize(input);
-    const result = this.nativeCtx.scheduleTask(
-      taskDef.name,
-      inputJson,
-      options?.queue,
-      options?.timeout?.toMilliseconds()
-    );
-
-    const taskExecutionId = result.taskExecutionId ?? '';
-
-    return new TaskHandleImpl<O>(
-      this,
-      taskExecutionId,
-      () => {
-        if (result.status === 'completed' && result.output) {
-          return deserialize<O>(result.output);
-        }
-        if (result.status === 'failed') {
-          throw new TaskFailed(
-            result.error ?? 'Task failed',
-            taskExecutionId,
-            result.retryable ?? false
-          );
-        }
-        return null;
-      },
-      () => result.status === 'pending'
-    );
-  }
-
-  /**
-   * Start a child workflow and wait for its result.
-   */
-  async workflow<I, O>(
-    workflowDef: WorkflowDefinition<I, O>,
-    input: I,
-    options?: ChildWorkflowOptions
-  ): Promise<O> {
-    const handle = this.scheduleWorkflow(workflowDef, input, options);
-    return handle.result();
-  }
-
-  /**
-   * Schedule a child workflow and return a handle.
+   * Schedule a child workflow for execution.
+   *
+   * Returns a WorkflowHandle that can be awaited directly or used to access the workflow ID.
+   *
+   * @example
+   * // Await directly
+   * const result = await ctx.scheduleWorkflow(childWorkflow, input);
+   *
+   * // Run child workflows concurrently
+   * const [r1, r2] = await Promise.all([
+   *   ctx.scheduleWorkflow(workflow1, input1),
+   *   ctx.scheduleWorkflow(workflow2, input2),
+   * ]);
+   *
+   * // Access workflow ID
+   * const handle = ctx.scheduleWorkflow(childWorkflow, input);
+   * console.log(handle.workflowId);
+   * const result = await handle;
    */
   scheduleWorkflow<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
@@ -373,7 +407,7 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Get a value from workflow state.
    */
-  getState<T>(key: string): T | null {
+  get<T>(key: string): T | null {
     const value = this.nativeCtx.getState(key);
     if (value === null) {
       return null;
@@ -384,15 +418,29 @@ export class WorkflowContextImpl implements WorkflowContext {
   /**
    * Set a value in workflow state.
    */
-  setState<T>(key: string, value: T): void {
+  set<T>(key: string, value: T): void {
     this.nativeCtx.setState(key, serialize(value));
   }
 
   /**
    * Clear a value from workflow state.
    */
-  clearState(key: string): void {
+  clear(key: string): void {
     this.nativeCtx.clearState(key);
+  }
+
+  /**
+   * Clear all workflow state.
+   */
+  clearAll(): void {
+    this.nativeCtx.clearAll();
+  }
+
+  /**
+   * Get all state keys.
+   */
+  stateKeys(): string[] {
+    return this.nativeCtx.stateKeys();
   }
 
   /**

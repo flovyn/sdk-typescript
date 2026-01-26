@@ -9,20 +9,15 @@
  */
 
 import type { TaskActivationData } from '@flovyn/native';
-import type { TaskContext, Logger } from '../types';
+import type { TaskContext, Logger, StreamEvent as PublicStreamEvent } from '../types';
 import { TaskCancelled } from '../errors';
 import { createTaskLogger } from '../task';
 
 /**
- * Stream event types.
+ * Internal stream event for storage.
  */
-export type StreamEventType = 'token' | 'progress' | 'data' | 'error';
-
-/**
- * Stream event.
- */
-export interface StreamEvent {
-  type: StreamEventType;
+export interface InternalStreamEvent {
+  type: 'token' | 'progress' | 'data' | 'error';
   data: unknown;
   timestamp: number;
 }
@@ -35,13 +30,13 @@ export class TaskContextImpl implements TaskContext {
   private _cancelled: boolean = false;
   private _progress: number = 0;
   private _lastHeartbeat: number;
-  private readonly _streamEvents: StreamEvent[] = [];
+  private readonly _streamEvents: InternalStreamEvent[] = [];
 
   constructor(
     private readonly activationData: TaskActivationData,
     private readonly onProgress?: (progress: number) => void,
     private readonly onHeartbeat?: () => void,
-    private readonly onStream?: (event: StreamEvent) => void
+    private readonly onStream?: (event: InternalStreamEvent) => void
   ) {
     this._log = createTaskLogger(activationData.taskExecutionId, activationData.taskKind);
     this._lastHeartbeat = Date.now();
@@ -86,10 +81,30 @@ export class TaskContextImpl implements TaskContext {
   }
 
   /**
+   * Stream an event to connected clients (consolidated API).
+   */
+  stream(event: PublicStreamEvent): void {
+    switch (event.type) {
+      case 'token':
+        this.streamToken(event.text);
+        break;
+      case 'progress':
+        this.streamProgress(event.progress);
+        break;
+      case 'data':
+        this.streamData(event.data);
+        break;
+      case 'error':
+        this.streamError(event.message);
+        break;
+    }
+  }
+
+  /**
    * Stream a token (for LLM-style streaming).
    */
   streamToken(token: string): void {
-    const event: StreamEvent = {
+    const event: InternalStreamEvent = {
       type: 'token',
       data: token,
       timestamp: Date.now(),
@@ -103,7 +118,7 @@ export class TaskContextImpl implements TaskContext {
    * Stream progress update.
    */
   streamProgress(progress: number): void {
-    const event: StreamEvent = {
+    const event: InternalStreamEvent = {
       type: 'progress',
       data: progress,
       timestamp: Date.now(),
@@ -117,7 +132,7 @@ export class TaskContextImpl implements TaskContext {
    * Stream arbitrary data.
    */
   streamData(data: unknown): void {
-    const event: StreamEvent = {
+    const event: InternalStreamEvent = {
       type: 'data',
       data,
       timestamp: Date.now(),
@@ -131,7 +146,7 @@ export class TaskContextImpl implements TaskContext {
    * Stream an error (non-fatal).
    */
   streamError(error: string): void {
-    const event: StreamEvent = {
+    const event: InternalStreamEvent = {
       type: 'error',
       data: error,
       timestamp: Date.now(),
@@ -193,7 +208,7 @@ export class TaskContextImpl implements TaskContext {
   /**
    * Get all stream events.
    */
-  get streamEvents(): readonly StreamEvent[] {
+  get streamEvents(): readonly InternalStreamEvent[] {
     return this._streamEvents;
   }
 

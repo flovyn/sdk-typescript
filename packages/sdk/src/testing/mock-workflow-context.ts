@@ -163,7 +163,7 @@ export class MockWorkflowContext implements WorkflowContext {
 
   // WorkflowContext implementation
 
-  async task<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O> {
+  schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O> {
     const results = this._taskResults.get(taskDef.name);
     if (!results || results.length === 0) {
       throw new Error(`No mocked result for task "${taskDef.name}". Call mockTaskResult() first.`);
@@ -171,10 +171,19 @@ export class MockWorkflowContext implements WorkflowContext {
 
     const result = results.shift() as O;
     this.executedTasks.push({ taskName: taskDef.name, input, options, result });
-    return result;
+
+    const resultPromise = Promise.resolve(result);
+    return {
+      taskExecutionId: `mock-task-${Date.now()}`,
+      result: () => resultPromise,
+      then: <TResult1 = O, TResult2 = never>(
+        onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+      ) => resultPromise.then(onfulfilled, onrejected),
+    };
   }
 
-  async taskByName<O = unknown>(
+  async scheduleByName<O = unknown>(
     taskName: string,
     input: unknown,
     options?: TaskOptions
@@ -200,42 +209,6 @@ export class MockWorkflowContext implements WorkflowContext {
     this._taskResults.set(taskName, existing);
   }
 
-  scheduleTask<I, O>(
-    taskDef: TaskDefinition<I, O>,
-    input: I,
-    options?: TaskOptions
-  ): TaskHandle<O> {
-    const results = this._taskResults.get(taskDef.name);
-    if (!results || results.length === 0) {
-      throw new Error(`No mocked result for task "${taskDef.name}". Call mockTaskResult() first.`);
-    }
-
-    const result = results.shift() as O;
-    this.executedTasks.push({ taskName: taskDef.name, input, options, result });
-
-    return {
-      taskExecutionId: `mock-task-${Date.now()}`,
-      result: () => Promise.resolve(result),
-    };
-  }
-
-  async workflow<I, O>(
-    workflowDef: WorkflowDefinition<I, O>,
-    input: I,
-    options?: ChildWorkflowOptions
-  ): Promise<O> {
-    const results = this._childWorkflowResults.get(workflowDef.name);
-    if (!results || results.length === 0) {
-      throw new Error(
-        `No mocked result for child workflow "${workflowDef.name}". Call mockChildWorkflowResult() first.`
-      );
-    }
-
-    const result = results.shift() as O;
-    this.startedChildWorkflows.push({ workflowName: workflowDef.name, input, options, result });
-    return result;
-  }
-
   scheduleWorkflow<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
@@ -251,9 +224,14 @@ export class MockWorkflowContext implements WorkflowContext {
     const result = results.shift() as O;
     this.startedChildWorkflows.push({ workflowName: workflowDef.name, input, options, result });
 
+    const resultPromise = Promise.resolve(result);
     return {
       workflowId: `mock-workflow-${Date.now()}`,
-      result: () => Promise.resolve(result),
+      result: () => resultPromise,
+      then: <TResult1 = O, TResult2 = never>(
+        onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+      ) => resultPromise.then(onfulfilled, onrejected),
       query: () => Promise.reject(new Error('Query not supported in mock')),
       signal: () => Promise.reject(new Error('Signal not supported in mock')),
       cancel: () => Promise.reject(new Error('Cancel not supported in mock')),
@@ -308,16 +286,24 @@ export class MockWorkflowContext implements WorkflowContext {
     return result;
   }
 
-  getState<T>(key: string): T | null {
+  get<T>(key: string): T | null {
     return (this._state.get(key) as T) ?? null;
   }
 
-  setState<T>(key: string, value: T): void {
+  set<T>(key: string, value: T): void {
     this._state.set(key, value);
   }
 
-  clearState(key: string): void {
+  clear(key: string): void {
     this._state.delete(key);
+  }
+
+  clearAll(): void {
+    this._state.clear();
+  }
+
+  stateKeys(): string[] {
+    return Array.from(this._state.keys());
   }
 
   currentTime(): Date {

@@ -64,24 +64,52 @@ export interface TaskHooks<I = unknown, O = unknown> {
  * All operations on this context are replay-safe and deterministic.
  */
 export interface WorkflowContext {
-  /** Schedule a task and wait for its result. */
-  schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): Promise<O>;
+  /**
+   * Schedule a task for execution.
+   *
+   * Returns a TaskHandle that can be awaited directly or used to access the task execution ID.
+   *
+   * @example
+   * // Await directly
+   * const result = await ctx.schedule(myTask, input);
+   *
+   * // Run tasks concurrently
+   * const [r1, r2] = await Promise.all([
+   *   ctx.schedule(task1, input1),
+   *   ctx.schedule(task2, input2),
+   * ]);
+   *
+   * // Access task execution ID
+   * const handle = ctx.schedule(myTask, input);
+   * console.log(handle.taskExecutionId);
+   * const result = await handle;
+   */
+  schedule<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O>;
 
   /** Schedule a task by name and wait for its result (untyped). */
   scheduleByName<O = unknown>(taskName: string, input: unknown, options?: TaskOptions): Promise<O>;
 
-  /** Schedule a task for execution and return a handle. */
-  scheduleAsync<I, O>(taskDef: TaskDefinition<I, O>, input: I, options?: TaskOptions): TaskHandle<O>;
-
-  /** Schedule a child workflow and wait for its result. */
+  /**
+   * Schedule a child workflow for execution.
+   *
+   * Returns a WorkflowHandle that can be awaited directly or used to access the workflow ID.
+   *
+   * @example
+   * // Await directly
+   * const result = await ctx.scheduleWorkflow(childWorkflow, input);
+   *
+   * // Run child workflows concurrently
+   * const [r1, r2] = await Promise.all([
+   *   ctx.scheduleWorkflow(workflow1, input1),
+   *   ctx.scheduleWorkflow(workflow2, input2),
+   * ]);
+   *
+   * // Access workflow ID
+   * const handle = ctx.scheduleWorkflow(childWorkflow, input);
+   * console.log(handle.workflowId);
+   * const result = await handle;
+   */
   scheduleWorkflow<I, O>(
-    workflowDef: WorkflowDefinition<I, O>,
-    input: I,
-    options?: ChildWorkflowOptions
-  ): Promise<O>;
-
-  /** Schedule a child workflow and return a handle. */
-  scheduleWorkflowAsync<I, O>(
     workflowDef: WorkflowDefinition<I, O>,
     input: I,
     options?: ChildWorkflowOptions
@@ -249,8 +277,12 @@ export interface RetryPolicy {
 
 /**
  * Handle to a running task.
+ *
+ * Implements PromiseLike so it can be awaited directly:
+ * @example
+ * const result = await ctx.schedule(myTask, input);
  */
-export interface TaskHandle<O> {
+export interface TaskHandle<O> extends PromiseLike<O> {
   /** Wait for the task result. */
   result(): Promise<O>;
   /** The task execution ID. */
@@ -259,8 +291,12 @@ export interface TaskHandle<O> {
 
 /**
  * Handle to a running workflow.
+ *
+ * Implements PromiseLike so it can be awaited directly:
+ * @example
+ * const result = await ctx.scheduleWorkflow(childWorkflow, input);
  */
-export interface WorkflowHandle<O> {
+export interface WorkflowHandle<O> extends PromiseLike<O> {
   /** Wait for the workflow result. */
   result(): Promise<O>;
   /** Query the workflow state. */

@@ -153,16 +153,30 @@ The workflow context provides deterministic operations:
 // Execute a task and await result
 const result = await ctx.schedule(myTask, input);
 
-// Schedule a task (non-blocking, returns handle)
-const handle = ctx.scheduleAsync(myTask, input);
-const result = await handle.result();
+// Run tasks concurrently with Promise.all
+const [r1, r2] = await Promise.all([
+  ctx.schedule(task1, input1),
+  ctx.schedule(task2, input2),
+]);
+
+// Access task execution ID before awaiting
+const handle = ctx.schedule(myTask, input);
+console.log(handle.taskExecutionId);
+const result = await handle;
 
 // Start a child workflow and await result
 const childResult = await ctx.scheduleWorkflow(childWorkflow, input);
 
-// Start a child workflow (non-blocking, returns handle)
-const childHandle = ctx.scheduleWorkflowAsync(childWorkflow, input);
-const childResult = await childHandle.result();
+// Run child workflows concurrently
+const [c1, c2] = await Promise.all([
+  ctx.scheduleWorkflow(workflow1, input1),
+  ctx.scheduleWorkflow(workflow2, input2),
+]);
+
+// Access workflow ID before awaiting
+const handle = ctx.scheduleWorkflow(childWorkflow, input);
+console.log(handle.workflowId);
+const result = await handle;
 
 // Durable timer
 await ctx.sleep(Duration.minutes(5));

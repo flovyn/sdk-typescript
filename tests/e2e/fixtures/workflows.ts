@@ -373,7 +373,7 @@ export const parallelTasksWorkflow = workflow<TaskSchedulingInput, TaskSchedulin
     // Schedule all tasks
     const handles = [];
     for (let i = 0; i < input.count; i++) {
-      const handle = ctx.scheduleAsync(addTask, { a: i, b: i });
+      const handle = ctx.schedule(addTask, { a: i, b: i });
       handles.push(handle);
     }
 
@@ -510,7 +510,7 @@ export const fanOutFanInWorkflow = workflow<FanOutInput, FanOutOutput>({
     // Fan-out: Schedule all tasks in parallel
     const handles = [];
     for (const item of input.items) {
-      const handle = ctx.scheduleAsync(echoTask, { message: item });
+      const handle = ctx.schedule(echoTask, { message: item });
       handles.push(handle);
     }
 
@@ -541,7 +541,7 @@ export const largeBatchWorkflow = workflow<LargeBatchInput, LargeBatchOutput>({
     // Schedule many tasks in parallel
     const handles = [];
     for (let i = 0; i < input.count; i++) {
-      const handle = ctx.scheduleAsync(addTask, { a: i, b: 1 });
+      const handle = ctx.schedule(addTask, { a: i, b: 1 });
       handles.push(handle);
     }
 
@@ -568,8 +568,8 @@ export const mixedParallelWorkflow = workflow<Record<string, never>, MixedParall
   name: 'mixed-parallel-workflow',
   run: async (ctx) => {
     // Phase 1: Two parallel echo tasks
-    const handle1 = ctx.scheduleAsync(echoTask, { message: 'task-1' });
-    const handle2 = ctx.scheduleAsync(echoTask, { message: 'task-2' });
+    const handle1 = ctx.schedule(echoTask, { message: 'task-1' });
+    const handle2 = ctx.schedule(echoTask, { message: 'task-2' });
 
     const result1 = await handle1.result();
     const result2 = await handle2.result();
@@ -582,7 +582,7 @@ export const mixedParallelWorkflow = workflow<Record<string, never>, MixedParall
     // Phase 3: Three parallel add tasks
     const handles = [];
     for (let i = 0; i < 3; i++) {
-      const handle = ctx.scheduleAsync(addTask, { a: i, b: i });
+      const handle = ctx.schedule(addTask, { a: i, b: i });
       handles.push(handle);
     }
 

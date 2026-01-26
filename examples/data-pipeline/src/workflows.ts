@@ -195,7 +195,7 @@ export const parallelPipelineWorkflow = workflow<PipelineConfig, PipelineResult>
 
       // Schedule all chunk processing tasks
       const handles = chunks.map((chunk, i) =>
-        ctx.scheduleAsync(processBatchTask, {
+        ctx.schedule(processBatchTask, {
           records: chunk,
           transformations: config.transformations,
           continueOnError: config.continueOnError,
@@ -282,7 +282,7 @@ export const distributedPipelineWorkflow = workflow<PipelineConfig, PipelineResu
       }
 
       // Schedule child workflow for this batch
-      const handle = ctx.scheduleWorkflowAsync(batchProcessorWorkflow, {
+      const handle = ctx.scheduleWorkflow(batchProcessorWorkflow, {
         source: config.source,
         batchSize: config.batchSize,
         offset,

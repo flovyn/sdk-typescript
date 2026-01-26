@@ -17,17 +17,42 @@ The WorkflowContext API has been updated for consistency with SDK-Kotlin (the re
 |----------|----------|
 | `task()` | `schedule()` |
 | `taskByName()` | `scheduleByName()` |
-| `scheduleTask()` | `scheduleAsync()` |
 | `workflow()` | `scheduleWorkflow()` |
-| `scheduleWorkflow()` | `scheduleWorkflowAsync()` |
 | `getState()` | `get()` |
 | `setState()` | `set()` |
 | `clearState()` | `clear()` |
+
+#### Removed Methods
+
+- `scheduleTask()` - Use `schedule()` instead (returns awaitable `TaskHandle`)
+- `scheduleWorkflowAsync()` - Use `scheduleWorkflow()` instead (returns awaitable `WorkflowHandle`)
 
 #### New Methods
 
 - `clearAll()` - Clear all workflow state
 - `stateKeys()` - Get all state keys
+
+#### Handle Types
+
+Both `TaskHandle` and `WorkflowHandle` now implement `PromiseLike`, so they can be awaited directly:
+
+```typescript
+// TaskHandle<O> - can be awaited directly
+const result = await ctx.schedule(myTask, input);
+
+// Or access properties before awaiting
+const handle = ctx.schedule(myTask, input);
+console.log(handle.taskExecutionId);
+const result = await handle;
+
+// WorkflowHandle<O> - can be awaited directly
+const result = await ctx.scheduleWorkflow(childWorkflow, input);
+
+// Or access properties before awaiting
+const handle = ctx.scheduleWorkflow(childWorkflow, input);
+console.log(handle.workflowId);
+const result = await handle;
+```
 
 ### Migration Guide
 
@@ -61,19 +86,23 @@ const myWorkflow = workflow({
 const myWorkflow = workflow({
   name: 'my-workflow',
   async run(ctx, input: MyInput): Promise<MyOutput> {
-    // Execute task
+    // Execute task - schedule() returns awaitable TaskHandle
     const result = await ctx.schedule(myTask, { value: input.value });
 
-    // Schedule task (non-blocking)
-    const handle = ctx.scheduleAsync(myTask, { value: input.value });
-    const result = await handle.result();
+    // Run tasks concurrently - no need for scheduleAsync
+    const [r1, r2] = await Promise.all([
+      ctx.schedule(task1, input1),
+      ctx.schedule(task2, input2),
+    ]);
 
-    // Execute child workflow
+    // Execute child workflow - scheduleWorkflow() returns awaitable WorkflowHandle
     const childResult = await ctx.scheduleWorkflow(childWorkflow, {});
 
-    // Schedule child workflow (non-blocking)
-    const childHandle = ctx.scheduleWorkflowAsync(childWorkflow, {});
-    const childResult = await childHandle.result();
+    // Run child workflows concurrently
+    const [c1, c2] = await Promise.all([
+      ctx.scheduleWorkflow(workflow1, input1),
+      ctx.scheduleWorkflow(workflow2, input2),
+    ]);
 
     // State management
     ctx.set('key', 'value');
@@ -91,7 +120,7 @@ const myWorkflow = workflow({
 
 These changes align the TypeScript SDK with SDK-Kotlin (the reference implementation) and SDK-Python:
 
-1. **Shorter method names** - `schedule()` instead of `task()` is clearer about what's happening
+1. **Simpler API** - `schedule()` returns `TaskHandle` which is awaitable, eliminating need for separate `scheduleAsync()`
 2. **Consistent naming** - All SDKs now use the same method names
-3. **Clearer semantics** - `scheduleAsync()` clearly indicates non-blocking behavior
+3. **Native concurrency** - Use `Promise.all()` for concurrent execution instead of a separate async variant
 4. **State API** - `get()`/`set()` follows common key-value store conventions

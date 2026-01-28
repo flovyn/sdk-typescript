@@ -43,7 +43,7 @@ describe('Parallel E2E Tests', () => {
      */
     const items = ['apple', 'banana', 'cherry', 'date'];
 
-    const handle = await env.startWorkflow(fanOutFanInWorkflow, {
+    const { handle } = await env.startWorkflow(fanOutFanInWorkflow, {
       items,
     });
 
@@ -63,7 +63,7 @@ describe('Parallel E2E Tests', () => {
      *
      * Schedules 20 tasks in parallel and verifies all complete correctly.
      */
-    const handle = await env.startWorkflow(largeBatchWorkflow, {
+    const { handle } = await env.startWorkflow(largeBatchWorkflow, {
       count: 20,
     });
 
@@ -84,7 +84,7 @@ describe('Parallel E2E Tests', () => {
      *
      * Verifies workflow handles zero items gracefully.
      */
-    const handle = await env.startWorkflow(fanOutFanInWorkflow, {
+    const { handle } = await env.startWorkflow(fanOutFanInWorkflow, {
       items: [],
     });
 
@@ -102,7 +102,7 @@ describe('Parallel E2E Tests', () => {
      *
      * Verifies edge case of batch size 1.
      */
-    const handle = await env.startWorkflow(fanOutFanInWorkflow, {
+    const { handle } = await env.startWorkflow(fanOutFanInWorkflow, {
       items: ['only-one'],
     });
 
@@ -122,7 +122,7 @@ describe('Parallel E2E Tests', () => {
      */
     const items = ['a', 'b', 'c'];
 
-    const handle = await env.startWorkflow(fanOutFanInWorkflow, {
+    const { handle } = await env.startWorkflow(fanOutFanInWorkflow, {
       items,
     });
 
@@ -143,7 +143,7 @@ describe('Parallel E2E Tests', () => {
      * 2. Timer: Wait for 100ms
      * 3. Phase 3: Three parallel add tasks
      */
-    const handle = await env.startWorkflow(mixedParallelWorkflow, {});
+    const { handle } = await env.startWorkflow(mixedParallelWorkflow, {});
 
     const result = await env.awaitCompletion(handle, Duration.seconds(60));
 

@@ -38,7 +38,7 @@ describe('Streaming E2E Tests', () => {
      */
     const tokens = ['Hello', ' ', 'world', '!'];
 
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-token-task',
       taskInput: { tokens },
     });
@@ -62,7 +62,7 @@ describe('Streaming E2E Tests', () => {
      */
     const steps = 5;
 
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-progress-task',
       taskInput: { steps },
     });
@@ -88,7 +88,7 @@ describe('Streaming E2E Tests', () => {
       { id: 3, name: 'item3' },
     ];
 
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-data-task',
       taskInput: { items },
     });
@@ -108,7 +108,7 @@ describe('Streaming E2E Tests', () => {
      * - Task continues after streaming error (non-fatal)
      * - Task completes successfully
      */
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-error-task',
       taskInput: {
         errorMessage: 'Recoverable warning',
@@ -131,7 +131,7 @@ describe('Streaming E2E Tests', () => {
      * - All stream calls succeed
      * - Task completes successfully
      */
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-all-types-task',
       taskInput: {
         token: 'Generated token',
@@ -166,7 +166,7 @@ describe('Streaming E2E Tests', () => {
       'emoji: \ud83d\ude80', // rocket emoji
     ];
 
-    const handle = await env.startWorkflow(taskSchedulerWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulerWorkflow, {
       taskName: 'streaming-token-task',
       taskInput: { tokens },
     });

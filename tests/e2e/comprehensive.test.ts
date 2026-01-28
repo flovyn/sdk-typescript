@@ -46,7 +46,7 @@ describe('Comprehensive E2E Tests', () => {
      * - State set/get operations
      * - Multiple operations in sequence
      */
-    const handle = await env.startWorkflow(comprehensiveWorkflow, {
+    const { handle } = await env.startWorkflow(comprehensiveWorkflow, {
       value: 21,
     });
 
@@ -74,7 +74,7 @@ describe('Comprehensive E2E Tests', () => {
      *
      * Validates the same features with a different input to ensure determinism.
      */
-    const handle = await env.startWorkflow(comprehensiveWorkflow, {
+    const { handle } = await env.startWorkflow(comprehensiveWorkflow, {
       value: 50,
     });
 
@@ -100,35 +100,35 @@ describe('Comprehensive E2E Tests', () => {
      * Runs multiple different workflow types to ensure basic functionality.
      */
     // Echo workflow
-    const echoHandle = await env.startWorkflow(echoWorkflow, {
+    const { handle: echoHandle } = await env.startWorkflow(echoWorkflow, {
       message: 'hello',
     });
     const echoResult = await env.awaitCompletion(echoHandle, Duration.seconds(30));
     expect(echoResult.message).toBe('hello');
 
     // Doubler workflow
-    const doublerHandle = await env.startWorkflow(doublerWorkflow, {
+    const { handle: doublerHandle } = await env.startWorkflow(doublerWorkflow, {
       value: 25,
     });
     const doublerResult = await env.awaitCompletion(doublerHandle, Duration.seconds(30));
     expect(doublerResult.result).toBe(50);
 
     // Random workflow
-    const randomHandle = await env.startWorkflow(randomWorkflow, {});
+    const { handle: randomHandle } = await env.startWorkflow(randomWorkflow, {});
     const randomResult = await env.awaitCompletion(randomHandle, Duration.seconds(30));
     expect(randomResult.uuid).toBeDefined();
     expect(randomResult.randomFloat).toBeGreaterThanOrEqual(0);
     expect(randomResult.randomFloat).toBeLessThan(1.0);
 
     // Sleep workflow
-    const sleepHandle = await env.startWorkflow(sleepWorkflow, {
+    const { handle: sleepHandle } = await env.startWorkflow(sleepWorkflow, {
       durationMs: 50,
     });
     const sleepResult = await env.awaitCompletion(sleepHandle, Duration.seconds(30));
     expect(sleepResult.sleptDurationMs).toBe(50);
 
     // Stateful workflow
-    const statefulHandle = await env.startWorkflow(statefulWorkflow, {
+    const { handle: statefulHandle } = await env.startWorkflow(statefulWorkflow, {
       key: 'my-key',
       value: 'my-value',
     });

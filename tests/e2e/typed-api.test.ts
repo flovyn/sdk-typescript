@@ -47,7 +47,7 @@ describe('Typed API E2E Tests', () => {
      */
     // Use the typed API: pass workflow definition and typed input
     const input: EchoInput = { message: 'Hello from typed API!' };
-    const handle = await env.startWorkflow(echoWorkflow, input);
+    const { handle } = await env.startWorkflow(echoWorkflow, input);
 
     const result = await env.awaitCompletion(handle);
 
@@ -63,7 +63,7 @@ describe('Typed API E2E Tests', () => {
      */
     // Use the typed API: pass workflow definition and typed input
     const input: DoublerInput = { value: 21 };
-    const handle = await env.startWorkflow(doublerWorkflow, input);
+    const { handle } = await env.startWorkflow(doublerWorkflow, input);
 
     const result = await env.awaitCompletion(handle);
 
@@ -93,7 +93,7 @@ describe('Typed API E2E Tests', () => {
      */
     // The typedTaskWorkflow internally uses addTask definition instead of string
     const input: TypedTaskInput = { a: 10, b: 32 };
-    const handle = await env.startWorkflow(typedTaskWorkflow, input);
+    const { handle } = await env.startWorkflow(typedTaskWorkflow, input);
 
     const result = await env.awaitCompletion(handle);
 

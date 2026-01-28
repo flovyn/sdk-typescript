@@ -38,7 +38,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should execute echo workflow', async () => {
-    const handle = await env.startWorkflow(echoWorkflow, {
+    const { handle } = await env.startWorkflow(echoWorkflow, {
       message: 'Hello, World!',
     });
 
@@ -49,7 +49,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should execute doubler workflow', async () => {
-    const handle = await env.startWorkflow(doublerWorkflow, {
+    const { handle } = await env.startWorkflow(doublerWorkflow, {
       value: 21,
     });
 
@@ -59,7 +59,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should handle failing workflow', async () => {
-    const handle = await env.startWorkflow(failingWorkflow, {
+    const { handle } = await env.startWorkflow(failingWorkflow, {
       errorMessage: 'Intentional test failure',
     });
 
@@ -67,7 +67,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should handle stateful workflow', async () => {
-    const handle = await env.startWorkflow(statefulWorkflow, {
+    const { handle } = await env.startWorkflow(statefulWorkflow, {
       key: 'test-key',
       value: 'test-value',
     });
@@ -79,7 +79,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should handle run operation workflow', async () => {
-    const handle = await env.startWorkflow(runOperationWorkflow, {
+    const { handle } = await env.startWorkflow(runOperationWorkflow, {
       operationName: 'my-operation',
     });
 
@@ -89,7 +89,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should generate deterministic random values', async () => {
-    const handle = await env.startWorkflow(randomWorkflow, {});
+    const { handle } = await env.startWorkflow(randomWorkflow, {});
 
     const result = await env.awaitCompletion(handle);
 
@@ -101,7 +101,7 @@ describe('Workflow E2E Tests', () => {
   });
 
   it('should handle durable timers', async () => {
-    const handle = await env.startWorkflow(sleepWorkflow, {
+    const { handle } = await env.startWorkflow(sleepWorkflow, {
       durationMs: 100, // 100ms sleep
     });
 
@@ -116,7 +116,7 @@ describe('Workflow E2E Tests', () => {
     // Start 5 workflows concurrently
     const handles: Array<{ input: number; handle: Awaited<ReturnType<typeof env.startWorkflow>> }> = [];
     for (let i = 0; i < 5; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, { value: i });
+      const { handle } = await env.startWorkflow(doublerWorkflow, { value: i });
       handles.push({ input: i, handle });
     }
 

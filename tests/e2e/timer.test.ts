@@ -34,7 +34,7 @@ describe('Timer E2E Tests', () => {
      */
     const startTime = Date.now();
 
-    const handle = await env.startWorkflow(sleepWorkflow, {
+    const { handle } = await env.startWorkflow(sleepWorkflow, {
       durationMs: 100,
     });
 
@@ -54,7 +54,7 @@ describe('Timer E2E Tests', () => {
      */
     const startTime = Date.now();
 
-    const handle = await env.startWorkflow(sleepWorkflow, {
+    const { handle } = await env.startWorkflow(sleepWorkflow, {
       durationMs: 1000, // 1 second
     });
 

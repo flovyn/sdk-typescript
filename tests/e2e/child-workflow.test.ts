@@ -42,7 +42,7 @@ describe('Child Workflow E2E Tests', () => {
      * 2. Child workflow completes successfully
      * 3. Parent workflow receives child result
      */
-    const handle = await env.startWorkflow(childWorkflowWorkflow, {
+    const { handle } = await env.startWorkflow(childWorkflowWorkflow, {
       childInput: 'hello from parent',
     });
 
@@ -62,7 +62,7 @@ describe('Child Workflow E2E Tests', () => {
      * 2. Parent workflow catches the ChildWorkflowFailed exception
      * 3. Parent workflow handles the error gracefully
      */
-    const handle = await env.startWorkflow(childFailureWorkflow, {
+    const { handle } = await env.startWorkflow(childFailureWorkflow, {
       errorMessage: 'intentional child failure',
     });
 
@@ -86,7 +86,7 @@ describe('Child Workflow E2E Tests', () => {
      * 2. Child workflow calls grandchild workflow
      * 3. All levels complete and return results
      */
-    const handle = await env.startWorkflow(nestedChildWorkflow, {
+    const { handle } = await env.startWorkflow(nestedChildWorkflow, {
       depth: 3,
       value: 'nested',
     });

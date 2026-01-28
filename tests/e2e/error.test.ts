@@ -37,7 +37,7 @@ describe('Error E2E Tests', () => {
      */
     const specificError = 'Custom error message with specific details XYZ-123';
 
-    const handle = await env.startWorkflow(failingWorkflow, {
+    const { handle } = await env.startWorkflow(failingWorkflow, {
       errorMessage: specificError,
     });
 

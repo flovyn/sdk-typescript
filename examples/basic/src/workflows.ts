@@ -166,14 +166,29 @@ export const countdownWorkflow = workflow<CountdownInput, CountdownOutput>({
 });
 
 /**
+ * Input for the parent workflow.
+ */
+export interface ParentWorkflowInput {
+  names: string[];
+}
+
+/**
+ * Output from the parent workflow.
+ */
+export interface ParentWorkflowOutput {
+  processedCount: number;
+  greetings: string[];
+}
+
+/**
  * A workflow that demonstrates child workflows.
  */
-export const parentWorkflow = workflow({
+export const parentWorkflow = workflow<ParentWorkflowInput, ParentWorkflowOutput>({
   name: 'parent-workflow',
   description: 'A workflow that spawns child workflows',
   version: '1.0.0',
 
-  async run(ctx, input: { names: string[] }) {
+  async run(ctx, input) {
     ctx.log.info('Starting parent workflow', { count: input.names.length });
 
     const results: GreetingWorkflowOutput[] = [];

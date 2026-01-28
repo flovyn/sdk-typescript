@@ -88,20 +88,20 @@ async function main() {
     let handle;
     switch (pipelineType) {
       case 'parallel':
-        handle = await client.startWorkflow(parallelPipelineWorkflow, config);
+        ({ handle } = await client.startWorkflow(parallelPipelineWorkflow, config));
         break;
       case 'distributed':
-        handle = await client.startWorkflow(distributedPipelineWorkflow, config);
+        ({ handle } = await client.startWorkflow(distributedPipelineWorkflow, config));
         break;
       case 'recovery':
-        handle = await client.startWorkflow(errorRecoveryPipelineWorkflow, {
+        ({ handle } = await client.startWorkflow(errorRecoveryPipelineWorkflow, {
           source: config.source,
           destination: config.destination,
           maxRetries: 3,
-        });
+        }));
         break;
       default:
-        handle = await client.startWorkflow(simplePipelineWorkflow, config);
+        ({ handle } = await client.startWorkflow(simplePipelineWorkflow, config));
     }
 
     console.log(`Started pipeline workflow: ${handle.workflowId}`);

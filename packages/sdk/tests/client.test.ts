@@ -221,7 +221,7 @@ describe('FlovynClient', () => {
       client.registerWorkflow(testWorkflow);
       await client.start();
 
-      const handle = await client.startWorkflow(testWorkflow, { value: 42 });
+      const { handle } = await client.startWorkflow(testWorkflow, { value: 42 });
 
       expect(handle.workflowId).toBe('test-wf-id');
     });
@@ -230,7 +230,7 @@ describe('FlovynClient', () => {
       client.registerWorkflow(testWorkflow);
       await client.start();
 
-      const handle = await client.startWorkflow(testWorkflow, { value: 42 }, {
+      const { handle } = await client.startWorkflow(testWorkflow, { value: 42 }, {
         queue: 'custom-queue',
         workflowVersion: '2.0.0',
         idempotencyKey: 'unique-key-123',

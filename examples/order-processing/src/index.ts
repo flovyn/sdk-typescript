@@ -76,7 +76,7 @@ async function main() {
     };
 
     // Start workflow without approval
-    const handle = await client.startWorkflow(processOrderWorkflow, {
+    const { handle } = await client.startWorkflow(processOrderWorkflow, {
       order,
       requireApproval: false,
     });

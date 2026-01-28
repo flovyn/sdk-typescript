@@ -318,16 +318,25 @@ export class FlovynClient {
   /**
    * Start a workflow and return a handle.
    *
+   * The handle is wrapped in an object to avoid TypeScript's Awaited<T> unwrapping
+   * the PromiseLike interface on WorkflowHandle. Use destructuring to get the handle:
+   *
+   * ```typescript
+   * const { handle } = await client.startWorkflow(myWorkflow, input);
+   * console.log(handle.workflowId);
+   * const result = await handle;  // or await handle.result()
+   * ```
+   *
    * @param workflow - The workflow definition to start
    * @param input - The input to pass to the workflow
    * @param options - Optional configuration
-   * @returns A handle to interact with the workflow
+   * @returns An object containing the workflow handle
    */
   async startWorkflow<I, O>(
     workflow: WorkflowDefinition<I, O>,
     input: I,
     options?: StartWorkflowOptions
-  ): Promise<WorkflowHandle<O>> {
+  ): Promise<{ handle: WorkflowHandle<O> }> {
     if (!this.nativeClient) {
       throw new Error('Client is not started');
     }
@@ -355,13 +364,38 @@ export class FlovynClient {
     const httpUrl = this.options.httpUrl ?? this.options.serverUrl;
     const orgSlug = this.options.orgSlug ?? this.options.orgId;
 
-    return new WorkflowHandleImpl<O>(
-      this.nativeClient,
-      result.workflowExecutionId,
-      httpUrl,
-      orgSlug,
-      this.options.apiKey
-    );
+    return {
+      handle: new WorkflowHandleImpl<O>(
+        this.nativeClient,
+        result.workflowExecutionId,
+        httpUrl,
+        orgSlug,
+        this.options.apiKey
+      ),
+    };
+  }
+
+  /**
+   * Start a workflow and wait for its result.
+   *
+   * This is a convenience method that combines startWorkflow and awaiting the result.
+   *
+   * ```typescript
+   * const result = await client.executeWorkflow(myWorkflow, input);
+   * ```
+   *
+   * @param workflow - The workflow definition to start
+   * @param input - The input to pass to the workflow
+   * @param options - Optional configuration
+   * @returns The workflow result
+   */
+  async executeWorkflow<I, O>(
+    workflow: WorkflowDefinition<I, O>,
+    input: I,
+    options?: StartWorkflowOptions
+  ): Promise<O> {
+    const { handle } = await this.startWorkflow(workflow, input, options);
+    return handle.result();
   }
 
   /**

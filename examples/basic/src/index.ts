@@ -39,7 +39,7 @@ async function main() {
   try {
     // Example 1: Start a simple greeting workflow
     console.log('--- Example 1: Simple Greeting ---');
-    const handle1 = await client.startWorkflow(greetingWorkflow, {
+    const { handle: handle1 } = await client.startWorkflow(greetingWorkflow, {
       name: 'World',
       sendEmail: false,
     });
@@ -52,7 +52,7 @@ async function main() {
 
     // Example 2: Greeting with email
     console.log('--- Example 2: Greeting with Email ---');
-    const handle2 = await client.startWorkflow(greetingWorkflow, {
+    const { handle: handle2 } = await client.startWorkflow(greetingWorkflow, {
       name: 'Alice',
       email: 'alice@example.com',
       sendEmail: true,
@@ -67,7 +67,7 @@ async function main() {
 
     // Example 3: Parent workflow with multiple children
     console.log('--- Example 3: Parent Workflow ---');
-    const handle3 = await client.startWorkflow(parentWorkflow, {
+    const { handle: handle3 } = await client.startWorkflow(parentWorkflow, {
       names: ['Bob', 'Charlie', 'Diana'],
     });
     console.log(`Started workflow: ${handle3.workflowId}`);

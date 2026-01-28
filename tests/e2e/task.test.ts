@@ -34,7 +34,7 @@ describe('Task E2E Tests', () => {
   });
 
   it('should execute task scheduling workflow', async () => {
-    const handle = await env.startWorkflow(taskSchedulingWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulingWorkflow, {
       count: 5,
     });
 
@@ -46,7 +46,7 @@ describe('Task E2E Tests', () => {
   });
 
   it('should execute multiple tasks sequentially', async () => {
-    const handle = await env.startWorkflow(multiTaskWorkflow, {
+    const { handle } = await env.startWorkflow(multiTaskWorkflow, {
       count: 3,
     });
 
@@ -58,7 +58,7 @@ describe('Task E2E Tests', () => {
   });
 
   it('should execute parallel tasks workflow', async () => {
-    const handle = await env.startWorkflow(parallelTasksWorkflow, {
+    const { handle } = await env.startWorkflow(parallelTasksWorkflow, {
       count: 5,
     });
 

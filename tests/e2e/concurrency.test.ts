@@ -47,7 +47,7 @@ describe('Concurrency E2E Tests', () => {
     // Start multiple workflows concurrently
     const handles: Array<{ inputValue: number; handle: Awaited<ReturnType<typeof env.startWorkflow>> }> = [];
     for (let i = 0; i < numWorkflows; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, {
+      const { handle } = await env.startWorkflow(doublerWorkflow, {
         value: i * 10,
       });
       handles.push({ inputValue: i * 10, handle });
@@ -79,7 +79,7 @@ describe('Concurrency E2E Tests', () => {
     const handles: Array<{ index: number; items: string[]; handle: Awaited<ReturnType<typeof env.startWorkflow>> }> = [];
     for (let i = 0; i < 3; i++) {
       const items = [`item-${i}-0`, `item-${i}-1`, `item-${i}-2`, `item-${i}-3`];
-      const handle = await env.startWorkflow(fanOutFanInWorkflow, { items });
+      const { handle } = await env.startWorkflow(fanOutFanInWorkflow, { items });
       handles.push({ index: i, items, handle });
     }
 
@@ -103,7 +103,7 @@ describe('Concurrency E2E Tests', () => {
     // Start all workflows as fast as possible
     const handles: Array<{ index: number; handle: Awaited<ReturnType<typeof env.startWorkflow>> }> = [];
     for (let i = 0; i < numWorkflows; i++) {
-      const handle = await env.startWorkflow(echoWorkflow, {
+      const { handle } = await env.startWorkflow(echoWorkflow, {
         message: `msg-${i}`,
       });
       handles.push({ index: i, handle });
@@ -135,7 +135,7 @@ describe('Concurrency E2E Tests', () => {
 
     // Echo workflows
     for (let i = 0; i < 3; i++) {
-      const handle = await env.startWorkflow(echoWorkflow, {
+      const { handle } = await env.startWorkflow(echoWorkflow, {
         message: `echo-${i}`,
       });
       handles.push({ type: 'echo', index: i, handle });
@@ -143,7 +143,7 @@ describe('Concurrency E2E Tests', () => {
 
     // Doubler workflows
     for (let i = 0; i < 3; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, {
+      const { handle } = await env.startWorkflow(doublerWorkflow, {
         value: i * 5,
       });
       handles.push({ type: 'doubler', index: i, handle });
@@ -151,7 +151,7 @@ describe('Concurrency E2E Tests', () => {
 
     // Sleep workflows (short sleeps)
     for (let i = 0; i < 2; i++) {
-      const handle = await env.startWorkflow(sleepWorkflow, {
+      const { handle } = await env.startWorkflow(sleepWorkflow, {
         durationMs: 50,
       });
       handles.push({ type: 'sleep', index: i, handle });

@@ -47,7 +47,7 @@ describe('Replay E2E Tests', () => {
      * The workflow will be replayed multiple times as each async operation
      * completes, and must produce consistent results.
      */
-    const handle = await env.startWorkflow(mixedCommandsWorkflow, {
+    const { handle } = await env.startWorkflow(mixedCommandsWorkflow, {
       value: 42,
     });
 
@@ -68,7 +68,7 @@ describe('Replay E2E Tests', () => {
      * tasks sequentially. Each time a task completes, the workflow is
      * replayed and must produce the same task schedule sequence.
      */
-    const handle = await env.startWorkflow(taskSchedulingWorkflow, {
+    const { handle } = await env.startWorkflow(taskSchedulingWorkflow, {
       count: 5,
     });
 
@@ -87,7 +87,7 @@ describe('Replay E2E Tests', () => {
      * When multiple tasks are scheduled in parallel, replay must
      * correctly match each task to its result event.
      */
-    const handle = await env.startWorkflow(parallelTasksWorkflow, {
+    const { handle } = await env.startWorkflow(parallelTasksWorkflow, {
       count: 5,
     });
 
@@ -105,7 +105,7 @@ describe('Replay E2E Tests', () => {
      * A workflow with sleep should replay correctly, using the
      * stored timer duration from the event history.
      */
-    const handle = await env.startWorkflow(sleepWorkflow, {
+    const { handle } = await env.startWorkflow(sleepWorkflow, {
       durationMs: 100,
     });
 
@@ -125,7 +125,7 @@ describe('Replay E2E Tests', () => {
      * Each iteration schedules a child workflow, and on replay, the correct
      * child workflow result must be matched to each iteration.
      */
-    const handle = await env.startWorkflow(childLoopWorkflow, {
+    const { handle } = await env.startWorkflow(childLoopWorkflow, {
       count: 3,
     });
 

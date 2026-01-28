@@ -37,7 +37,7 @@ describe('Promise E2E Tests', () => {
      * 3. Resolve the promise externally (lookup promise ID from events)
      * 4. Workflow resumes and completes with the promise value
      */
-    const handle = await env.startWorkflow(awaitPromiseWorkflow, {
+    const { handle } = await env.startWorkflow(awaitPromiseWorkflow, {
       promiseName: 'approval',
       timeoutMs: 30000,
     });
@@ -66,7 +66,7 @@ describe('Promise E2E Tests', () => {
      * 3. Reject the promise externally
      * 4. Workflow receives PromiseRejected error
      */
-    const handle = await env.startWorkflow(awaitPromiseWorkflow, {
+    const { handle } = await env.startWorkflow(awaitPromiseWorkflow, {
       promiseName: 'approval',
       timeoutMs: 30000,
     });
@@ -90,7 +90,7 @@ describe('Promise E2E Tests', () => {
      * 2. Don't resolve the promise
      * 3. Workflow should timeout with PromiseTimeout error
      */
-    const handle = await env.startWorkflow(awaitPromiseWorkflow, {
+    const { handle } = await env.startWorkflow(awaitPromiseWorkflow, {
       promiseName: 'approval',
       timeoutMs: 2000, // 2 second timeout
     });

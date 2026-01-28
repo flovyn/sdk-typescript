@@ -238,13 +238,13 @@ export class FlovynTestEnvironment {
    * @param workflow The workflow definition or workflow name.
    * @param input The workflow input.
    * @param options Start options (idempotencyKey for deduplication).
-   * @returns A handle to the running workflow.
+   * @returns An object containing the workflow handle.
    */
   async startWorkflow<I, O>(
     workflow: WorkflowDefinition<I, O> | string,
     input: I,
     options?: { idempotencyKey?: string }
-  ): Promise<WorkflowHandle<O>> {
+  ): Promise<{ handle: WorkflowHandle<O> }> {
     if (!this._started || !this._client) {
       throw new Error('Test environment not started. Call start() first.');
     }
@@ -308,7 +308,7 @@ export class FlovynTestEnvironment {
     if (options?.idempotencyKey !== undefined) {
       startOptions.idempotencyKey = options.idempotencyKey;
     }
-    const handle = await this.startWorkflow(workflow, input, startOptions);
+    const { handle } = await this.startWorkflow(workflow, input, startOptions);
     return this.awaitCompletion(handle, options?.timeout);
   }
 

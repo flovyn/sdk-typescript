@@ -42,7 +42,7 @@ describe('Lifecycle E2E Tests', () => {
      */
     const handles = [];
     for (let i = 0; i < 3; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, {
+      const { handle } = await env.startWorkflow(doublerWorkflow, {
         value: i + 1,
       });
       handles.push(handle);
@@ -78,7 +78,7 @@ describe('Lifecycle E2E Tests', () => {
     expect(env.isStarted).toBe(true);
 
     // Process a workflow
-    const handle = await env.startWorkflow(echoWorkflow, {
+    const { handle } = await env.startWorkflow(echoWorkflow, {
       message: 'test',
     });
     const result = await env.awaitCompletion(handle, Duration.seconds(30));
@@ -95,7 +95,7 @@ describe('Lifecycle E2E Tests', () => {
      * Verifies the worker is resilient to individual workflow failures.
      */
     // Start a failing workflow
-    const handle = await env.startWorkflow(failingWorkflow, {
+    const { handle } = await env.startWorkflow(failingWorkflow, {
       errorMessage: 'Expected failure',
     });
 
@@ -105,7 +105,7 @@ describe('Lifecycle E2E Tests', () => {
     expect(env.isStarted).toBe(true);
 
     // Should be able to process more workflows
-    const handle2 = await env.startWorkflow(echoWorkflow, {
+    const { handle: handle2 } = await env.startWorkflow(echoWorkflow, {
       message: 'after-failure',
     });
     const result = await env.awaitCompletion(handle2, Duration.seconds(30));
@@ -127,7 +127,7 @@ describe('Lifecycle E2E Tests', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Process a workflow to verify still working
-    const handle = await env.startWorkflow(echoWorkflow, { message: 'uptime-test' });
+    const { handle } = await env.startWorkflow(echoWorkflow, { message: 'uptime-test' });
     const result = await env.awaitCompletion(handle);
     expect(result.message).toBe('uptime-test');
   });
@@ -157,7 +157,7 @@ describe('Lifecycle E2E Tests', () => {
      */
     // Run several workflows sequentially
     for (let i = 0; i < 5; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, { value: i });
+      const { handle } = await env.startWorkflow(doublerWorkflow, { value: i });
       const result = await env.awaitCompletion(handle);
       expect(result.result).toBe(i * 2);
     }
@@ -175,7 +175,7 @@ describe('Lifecycle E2E Tests', () => {
 
     // Submit workflows rapidly
     for (let i = 0; i < 10; i++) {
-      const handle = await env.startWorkflow(echoWorkflow, {
+      const { handle } = await env.startWorkflow(echoWorkflow, {
         message: `rapid-${i}`,
       });
       handles.push(handle);
@@ -193,12 +193,12 @@ describe('Lifecycle E2E Tests', () => {
      * Test that environment handles different workflow types.
      */
     // Echo workflow (string input)
-    const echoHandle = await env.startWorkflow(echoWorkflow, { message: 'test' });
+    const { handle: echoHandle } = await env.startWorkflow(echoWorkflow, { message: 'test' });
     const echoResult = await env.awaitCompletion(echoHandle);
     expect(echoResult.message).toBe('test');
 
     // Doubler workflow (number input)
-    const doublerHandle = await env.startWorkflow(doublerWorkflow, { value: 42 });
+    const { handle: doublerHandle } = await env.startWorkflow(doublerWorkflow, { value: 42 });
     const doublerResult = await env.awaitCompletion(doublerHandle);
     expect(doublerResult.result).toBe(84);
   });
@@ -210,13 +210,13 @@ describe('Lifecycle E2E Tests', () => {
     // Alternate between failing and successful workflows
     for (let i = 0; i < 3; i++) {
       // Failing workflow
-      const failHandle = await env.startWorkflow(failingWorkflow, {
+      const { handle: failHandle } = await env.startWorkflow(failingWorkflow, {
         errorMessage: `failure-${i}`,
       });
       await expect(env.awaitCompletion(failHandle)).rejects.toThrow();
 
       // Successful workflow
-      const successHandle = await env.startWorkflow(echoWorkflow, {
+      const { handle: successHandle } = await env.startWorkflow(echoWorkflow, {
         message: `success-${i}`,
       });
       const result = await env.awaitCompletion(successHandle);
@@ -233,7 +233,7 @@ describe('Lifecycle E2E Tests', () => {
 
     // Start all workflows concurrently
     for (let i = 0; i < concurrentCount; i++) {
-      const handle = await env.startWorkflow(doublerWorkflow, { value: i * 10 });
+      const { handle } = await env.startWorkflow(doublerWorkflow, { value: i * 10 });
       handles.push({ value: i * 10, handle });
     }
 
@@ -259,7 +259,7 @@ describe('Lifecycle E2E Tests', () => {
     const delayMs = 50;
 
     for (let i = 0; i < iterationCount; i++) {
-      const handle = await env.startWorkflow(echoWorkflow, {
+      const { handle } = await env.startWorkflow(echoWorkflow, {
         message: `stability-${i}`,
       });
       const result = await env.awaitCompletion(handle);

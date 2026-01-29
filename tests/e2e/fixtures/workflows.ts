@@ -191,6 +191,30 @@ export interface TypedTaskOutput {
   result: number;
 }
 
+// Signal workflow types
+export interface SignalWorkflowInput {
+  // Empty input, workflow waits for signal
+}
+
+export interface SignalWorkflowOutput {
+  signalName: string;
+  signalValue: unknown;
+}
+
+export interface MultiSignalInput {
+  signalCount: number;
+}
+
+export interface MultiSignalOutput {
+  count: number;
+  signals: Array<{ name: string; value: unknown }>;
+}
+
+export interface SignalCheckOutput {
+  hasSignal: boolean;
+  signals: Array<{ name: string; value: unknown }>;
+}
+
 // ============================================================================
 // Workflows
 // ============================================================================
@@ -687,6 +711,63 @@ export const typedTaskWorkflow = workflow<TypedTaskInput, TypedTaskOutput>({
 });
 
 /**
+ * Workflow that waits for a single signal and returns it.
+ */
+export const signalWorkflow = workflow<SignalWorkflowInput, SignalWorkflowOutput>({
+  name: 'signal-workflow',
+  run: async (ctx) => {
+    // Wait for a signal
+    const signal = await ctx.waitForSignal<unknown>();
+    return {
+      signalName: signal.name,
+      signalValue: signal.value,
+    };
+  },
+});
+
+/**
+ * Workflow that waits for multiple signals.
+ */
+export const multiSignalWorkflow = workflow<MultiSignalInput, MultiSignalOutput>({
+  name: 'multi-signal-workflow',
+  run: async (ctx, input) => {
+    const signals: Array<{ name: string; value: unknown }> = [];
+
+    for (let i = 0; i < input.signalCount; i++) {
+      const signal = await ctx.waitForSignal<unknown>();
+      signals.push({ name: signal.name, value: signal.value });
+    }
+
+    return {
+      count: signals.length,
+      signals,
+    };
+  },
+});
+
+/**
+ * Workflow that uses hasSignal and drainSignals for non-blocking check.
+ */
+export const signalCheckWorkflow = workflow<SignalWorkflowInput, SignalCheckOutput>({
+  name: 'signal-check-workflow',
+  run: async (ctx) => {
+    // Small delay to allow signals to arrive
+    await ctx.sleep(Duration.milliseconds(500));
+
+    // Check if any signals are pending
+    const hasSignal = ctx.hasSignal();
+
+    // Drain all pending signals
+    const signals = ctx.drainSignals<unknown>();
+
+    return {
+      hasSignal,
+      signals: signals.map((s) => ({ name: s.name, value: s.value })),
+    };
+  },
+});
+
+/**
  * All workflows for registration.
  */
 export const allWorkflows: WorkflowDefinition<unknown, unknown>[] = [
@@ -712,4 +793,7 @@ export const allWorkflows: WorkflowDefinition<unknown, unknown>[] = [
   comprehensiveWorkflow,
   taskSchedulerWorkflow,
   typedTaskWorkflow,
+  signalWorkflow,
+  multiSignalWorkflow,
+  signalCheckWorkflow,
 ];

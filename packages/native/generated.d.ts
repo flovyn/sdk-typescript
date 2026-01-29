@@ -119,6 +119,20 @@ export interface StartWorkflowOptions {
   /** Idempotency key for deduplication (optional). */
   idempotencyKey?: string
 }
+/** Result of signaling a workflow. */
+export interface SignalWorkflowResult {
+  /** Sequence number of the signal event. */
+  signalEventSequence: number
+}
+/** Result of signal-with-start operation. */
+export interface SignalWithStartResult {
+  /** The workflow execution ID. */
+  workflowExecutionId: string
+  /** Whether the workflow was created (vs already existed). */
+  workflowCreated: boolean
+  /** Sequence number of the signal event. */
+  signalEventSequence: number
+}
 /** OAuth2 client credentials for authentication. */
 export interface OAuth2Credentials {
   /** OAuth2 client ID. */
@@ -271,6 +285,22 @@ export interface OperationResult {
   /** Sequence number for this operation (if execute). */
   operationSeq?: number
 }
+/** Result of waiting for a signal. */
+export interface SignalResult {
+  /** Status: "received" or "pending" */
+  status: string
+  /** Signal name (if received). */
+  signalName?: string
+  /** Serialized value as JSON string (if received). */
+  value?: string
+}
+/** A signal event from the signal queue. */
+export interface SignalEvent {
+  /** Signal name. */
+  signalName: string
+  /** Serialized value as JSON string. */
+  value: string
+}
 /** Event types that can occur during workflow execution. */
 export const enum NapiEventType {
   WorkflowStarted = 'WorkflowStarted',
@@ -296,7 +326,8 @@ export const enum NapiEventType {
   ChildWorkflowCancelled = 'ChildWorkflowCancelled',
   TimerStarted = 'TimerStarted',
   TimerFired = 'TimerFired',
-  TimerCancelled = 'TimerCancelled'
+  TimerCancelled = 'TimerCancelled',
+  SignalReceived = 'SignalReceived'
 }
 /** Replay event for NAPI bindings. */
 export interface NapiReplayEvent {
@@ -384,6 +415,10 @@ export declare class NapiClient {
   resolvePromise(promiseId: string, value: string): Promise<void>
   /** Reject an external promise. */
   rejectPromise(promiseId: string, error: string): Promise<void>
+  /** Send a signal to an existing workflow. */
+  signalWorkflow(workflowExecutionId: string, signalName: string, signalValue: string): Promise<SignalWorkflowResult>
+  /** Send a signal to an existing workflow, or create a new workflow and send the signal. */
+  signalWithStartWorkflow(workflowId: string, workflowKind: string, workflowInput: string, queue: string | undefined | null, signalName: string, signalValue: string): Promise<SignalWithStartResult>
   /** Get the server URL. */
   get serverUrl(): string
   /** Get the org ID. */
@@ -399,6 +434,14 @@ export declare class NapiWorkflowContext {
   scheduleTask(kind: string, input: string, queue?: string | undefined | null, timeoutMs?: number | undefined | null): TaskResult
   /** Create a durable promise. */
   createPromise(name: string, timeoutMs?: number | undefined | null): PromiseResult
+  /** Wait for the next signal in the queue. */
+  waitForSignal(): SignalResult
+  /** Check if any signals are pending in the queue. */
+  hasSignal(): boolean
+  /** Get the number of pending signals. */
+  pendingSignalCount(): number
+  /** Drain all pending signals from the queue. */
+  drainSignals(): Array<SignalEvent>
   /** Start a timer. */
   startTimer(durationMs: number): TimerResult
   /** Schedule a child workflow. */

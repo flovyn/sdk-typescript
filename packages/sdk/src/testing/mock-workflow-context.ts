@@ -87,6 +87,7 @@ export class MockWorkflowContext implements WorkflowContext {
   private _promiseResolutions: Map<string, { value?: unknown; error?: string }> = new Map();
   private _childWorkflowResults: Map<string, unknown[]> = new Map();
   private _operationResults: Map<string, unknown> = new Map();
+  private _signalQueue: Array<{ name: string; value: unknown }> = [];
 
   // Tracking
   readonly executedTasks: TrackedTask[] = [];
@@ -270,6 +271,35 @@ export class MockWorkflowContext implements WorkflowContext {
     }
 
     return resolution.value as T;
+  }
+
+  /**
+   * Mock a signal by adding it to the signal queue.
+   */
+  mockSignal<T>(name: string, value: T): void {
+    this._signalQueue.push({ name, value });
+  }
+
+  async waitForSignal<T>(): Promise<{ name: string; value: T }> {
+    if (this._signalQueue.length === 0) {
+      throw new Error('No signals in queue. Call mockSignal() first.');
+    }
+    const signal = this._signalQueue.shift()!;
+    return { name: signal.name, value: signal.value as T };
+  }
+
+  hasSignal(): boolean {
+    return this._signalQueue.length > 0;
+  }
+
+  pendingSignalCount(): number {
+    return this._signalQueue.length;
+  }
+
+  drainSignals<T>(): Array<{ name: string; value: T }> {
+    const signals = this._signalQueue.map((s) => ({ name: s.name, value: s.value as T }));
+    this._signalQueue = [];
+    return signals;
   }
 
   async run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T> {

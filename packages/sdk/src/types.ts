@@ -124,6 +124,25 @@ export interface WorkflowContext {
   /** Create an external promise that can be resolved from outside. */
   promise<T>(name: string, options?: PromiseOptions): Promise<T>;
 
+  /**
+   * Wait for the next signal in the queue.
+   *
+   * Signals are consumed in order. If no signal is available, the workflow
+   * will suspend until a signal is received.
+   *
+   * @returns The signal with its name and value
+   */
+  waitForSignal<T>(): Promise<{ name: string; value: T }>;
+
+  /** Check if any signals are pending in the queue. */
+  hasSignal(): boolean;
+
+  /** Get the number of pending signals. */
+  pendingSignalCount(): number;
+
+  /** Drain all pending signals from the queue. */
+  drainSignals<T>(): Array<{ name: string; value: T }>;
+
   /** Execute a side effect operation (memoized). */
   run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T>;
 
@@ -278,25 +297,31 @@ export interface RetryPolicy {
 /**
  * Handle to a running task.
  *
- * Implements PromiseLike so it can be awaited directly:
+ * Can be awaited directly via the `then` method, or use `.result()` explicitly.
  * @example
  * const result = await ctx.schedule(myTask, input);
  */
-export interface TaskHandle<O> extends PromiseLike<O> {
+export interface TaskHandle<O> {
   /** Wait for the task result. */
   result(): Promise<O>;
   /** The task execution ID. */
   readonly taskExecutionId: string;
+  /** Implement PromiseLike for direct awaiting within workflows. */
+  then<TResult1 = O, TResult2 = never>(
+    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2>;
 }
 
 /**
  * Handle to a running workflow.
  *
- * Implements PromiseLike so it can be awaited directly:
+ * Use `.result()` to wait for completion, or query/signal the workflow.
  * @example
- * const result = await ctx.scheduleWorkflow(childWorkflow, input);
+ * const handle = await client.startWorkflow(myWorkflow, input);
+ * const result = await handle.result();
  */
-export interface WorkflowHandle<O> extends PromiseLike<O> {
+export interface WorkflowHandle<O> {
   /** Wait for the workflow result. */
   result(): Promise<O>;
   /** Query the workflow state. */
@@ -309,6 +334,11 @@ export interface WorkflowHandle<O> extends PromiseLike<O> {
   cancel(reason?: string): Promise<void>;
   /** The workflow execution ID. */
   readonly workflowId: string;
+  /** Implement then for direct awaiting within workflows (child workflows). */
+  then<TResult1 = O, TResult2 = never>(
+    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2>;
 }
 
 /**

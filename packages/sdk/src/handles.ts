@@ -46,6 +46,16 @@ export class WorkflowHandleImpl<O> implements WorkflowHandle<O> {
   ) {}
 
   /**
+   * Implement PromiseLike to allow direct awaiting.
+   */
+  then<TResult1 = O, TResult2 = never>(
+    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
+    return this.result().then(onfulfilled, onrejected);
+  }
+
+  /**
    * Get the workflow result by polling the events REST API.
    * This matches the Rust SDK approach of polling for completion events.
    */
@@ -147,16 +157,6 @@ export class WorkflowHandleImpl<O> implements WorkflowHandle<O> {
     // Cancel would require a dedicated server endpoint
     // For now, this is not implemented in the native bindings
     throw new Error('Cancel is not yet implemented in the native bindings');
-  }
-
-  /**
-   * Implement PromiseLike to allow direct awaiting.
-   */
-  then<TResult1 = O, TResult2 = never>(
-    onfulfilled?: ((value: O) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-  ): Promise<TResult1 | TResult2> {
-    return this.result().then(onfulfilled, onrejected);
   }
 }
 

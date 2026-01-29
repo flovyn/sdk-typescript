@@ -450,6 +450,81 @@ export class FlovynClient {
   }
 
   /**
+   * Send a signal to an existing workflow.
+   *
+   * @param workflowExecutionId - The workflow execution ID
+   * @param signalName - The name of the signal
+   * @param value - The signal payload
+   * @returns The sequence number of the signal event
+   */
+  async signalWorkflow<T>(
+    workflowExecutionId: string,
+    signalName: string,
+    value: T
+  ): Promise<number> {
+    if (!this.nativeClient) {
+      throw new Error('Client is not started');
+    }
+
+    const result = await this.nativeClient.signalWorkflow(
+      workflowExecutionId,
+      signalName,
+      serialize(value)
+    );
+    return result.signalEventSequence;
+  }
+
+  /**
+   * Send a signal to an existing workflow, or create a new workflow and send the signal.
+   *
+   * This is an atomic operation - either the workflow exists and receives the signal,
+   * or a new workflow is created with the signal.
+   *
+   * @param workflow - The workflow definition
+   * @param workflowId - The workflow ID (used as idempotency key)
+   * @param input - The workflow input
+   * @param signalName - The name of the signal
+   * @param signalValue - The signal payload
+   * @param options - Optional configuration
+   * @returns The result with workflow execution ID and creation status
+   */
+  async signalWithStartWorkflow<I, O, S>(
+    workflow: WorkflowDefinition<I, O>,
+    workflowId: string,
+    input: I,
+    signalName: string,
+    signalValue: S,
+    options?: StartWorkflowOptions
+  ): Promise<{ workflowHandle: WorkflowHandle<O>; workflowCreated: boolean }> {
+    if (!this.nativeClient) {
+      throw new Error('Client is not started');
+    }
+
+    const result = await this.nativeClient.signalWithStartWorkflow(
+      workflowId,
+      workflow.name,
+      serialize(input),
+      options?.queue ?? this.options.queue,
+      signalName,
+      serialize(signalValue)
+    );
+
+    const httpUrl = this.options.httpUrl ?? this.options.serverUrl;
+    const orgSlug = this.options.orgSlug ?? this.options.orgId;
+
+    return {
+      workflowHandle: new WorkflowHandleImpl<O>(
+        this.nativeClient,
+        result.workflowExecutionId,
+        httpUrl,
+        orgSlug,
+        this.options.apiKey
+      ),
+      workflowCreated: result.workflowCreated,
+    };
+  }
+
+  /**
    * Check if the client is started.
    */
   isStarted(): boolean {

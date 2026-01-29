@@ -384,6 +384,58 @@ export class WorkflowContextImpl implements WorkflowContext {
   }
 
   /**
+   * Wait for the next signal in the queue.
+   *
+   * Signals are consumed in order. If no signal is available, the workflow
+   * will suspend until a signal is received.
+   *
+   * @returns The signal with its name and value
+   */
+  async waitForSignal<T>(): Promise<{ name: string; value: T }> {
+    const result = this.nativeCtx.waitForSignal();
+
+    if (result.status === 'received' && result.value) {
+      return {
+        name: result.signalName ?? '',
+        value: deserialize<T>(result.value),
+      };
+    }
+
+    if (result.status === 'pending') {
+      throw new WorkflowSuspended('Waiting for signal', this.takeCommands());
+    }
+
+    throw new Error(`Unexpected signal status: ${result.status}`);
+  }
+
+  /**
+   * Check if any signals are pending in the queue.
+   */
+  hasSignal(): boolean {
+    return this.nativeCtx.hasSignal();
+  }
+
+  /**
+   * Get the number of pending signals.
+   */
+  pendingSignalCount(): number {
+    return this.nativeCtx.pendingSignalCount();
+  }
+
+  /**
+   * Drain all pending signals from the queue.
+   *
+   * @returns A list of signals with their names and values
+   */
+  drainSignals<T>(): Array<{ name: string; value: T }> {
+    const signals = this.nativeCtx.drainSignals();
+    return signals.map((sig) => ({
+      name: sig.signalName,
+      value: deserialize<T>(sig.value),
+    }));
+  }
+
+  /**
    * Execute a side effect operation (memoized).
    */
   async run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T> {

@@ -87,7 +87,7 @@ export class MockWorkflowContext implements WorkflowContext {
   private _promiseResolutions: Map<string, { value?: unknown; error?: string }> = new Map();
   private _childWorkflowResults: Map<string, unknown[]> = new Map();
   private _operationResults: Map<string, unknown> = new Map();
-  private _signalQueue: Array<{ name: string; value: unknown }> = [];
+  private _signalQueues: Map<string, unknown[]> = new Map();
 
   // Tracking
   readonly executedTasks: TrackedTask[] = [];
@@ -274,31 +274,38 @@ export class MockWorkflowContext implements WorkflowContext {
   }
 
   /**
-   * Mock a signal by adding it to the signal queue.
+   * Mock a signal by adding it to the per-name signal queue.
    */
-  mockSignal<T>(name: string, value: T): void {
-    this._signalQueue.push({ name, value });
+  mockSignal<T>(signalName: string, value: T): void {
+    const queue = this._signalQueues.get(signalName) ?? [];
+    queue.push(value);
+    this._signalQueues.set(signalName, queue);
   }
 
-  async waitForSignal<T>(): Promise<{ name: string; value: T }> {
-    if (this._signalQueue.length === 0) {
-      throw new Error('No signals in queue. Call mockSignal() first.');
+  async waitForSignal<T>(signalName: string): Promise<T> {
+    const queue = this._signalQueues.get(signalName);
+    if (!queue || queue.length === 0) {
+      throw new Error(`No signals in queue for "${signalName}". Call mockSignal() first.`);
     }
-    const signal = this._signalQueue.shift()!;
-    return { name: signal.name, value: signal.value as T };
+    return queue.shift() as T;
   }
 
-  hasSignal(): boolean {
-    return this._signalQueue.length > 0;
+  hasSignal(signalName: string): boolean {
+    const queue = this._signalQueues.get(signalName);
+    return queue !== undefined && queue.length > 0;
   }
 
-  pendingSignalCount(): number {
-    return this._signalQueue.length;
+  pendingSignalCount(signalName: string): number {
+    return this._signalQueues.get(signalName)?.length ?? 0;
   }
 
-  drainSignals<T>(): Array<{ name: string; value: T }> {
-    const signals = this._signalQueue.map((s) => ({ name: s.name, value: s.value as T }));
-    this._signalQueue = [];
+  drainSignals<T>(signalName: string): T[] {
+    const queue = this._signalQueues.get(signalName);
+    if (!queue) {
+      return [];
+    }
+    const signals = [...queue] as T[];
+    queue.length = 0;
     return signals;
   }
 

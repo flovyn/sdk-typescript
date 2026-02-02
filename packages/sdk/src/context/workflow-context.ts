@@ -391,48 +391,57 @@ export class WorkflowContextImpl implements WorkflowContext {
    *
    * @returns The signal with its name and value
    */
-  async waitForSignal<T>(): Promise<{ name: string; value: T }> {
-    const result = this.nativeCtx.waitForSignal();
+  /**
+   * Wait for the next signal with the specified name.
+   *
+   * Each signal name has its own FIFO queue. Signals are consumed in order
+   * within each queue. If no signal with the given name is available, the
+   * workflow will suspend until one is received.
+   *
+   * @param signalName The signal name to wait for
+   * @returns The signal value
+   */
+  async waitForSignal<T>(signalName: string): Promise<T> {
+    const result = this.nativeCtx.waitForSignal(signalName);
 
     if (result.status === 'received' && result.value) {
-      return {
-        name: result.signalName ?? '',
-        value: deserialize<T>(result.value),
-      };
+      return deserialize<T>(result.value);
     }
 
     if (result.status === 'pending') {
-      throw new WorkflowSuspended('Waiting for signal', this.takeCommands());
+      throw new WorkflowSuspended(`Waiting for signal '${signalName}'`, this.takeCommands());
     }
 
     throw new Error(`Unexpected signal status: ${result.status}`);
   }
 
   /**
-   * Check if any signals are pending in the queue.
-   */
-  hasSignal(): boolean {
-    return this.nativeCtx.hasSignal();
-  }
-
-  /**
-   * Get the number of pending signals.
-   */
-  pendingSignalCount(): number {
-    return this.nativeCtx.pendingSignalCount();
-  }
-
-  /**
-   * Drain all pending signals from the queue.
+   * Check if any signals with the specified name are pending.
    *
-   * @returns A list of signals with their names and values
+   * @param signalName The signal name to check
    */
-  drainSignals<T>(): Array<{ name: string; value: T }> {
-    const signals = this.nativeCtx.drainSignals();
-    return signals.map((sig) => ({
-      name: sig.signalName,
-      value: deserialize<T>(sig.value),
-    }));
+  hasSignal(signalName: string): boolean {
+    return this.nativeCtx.hasSignal(signalName);
+  }
+
+  /**
+   * Get the number of pending signals with the specified name.
+   *
+   * @param signalName The signal name to count
+   */
+  pendingSignalCount(signalName: string): number {
+    return this.nativeCtx.pendingSignalCount(signalName);
+  }
+
+  /**
+   * Drain all pending signals with the specified name.
+   *
+   * @param signalName The signal name to drain
+   * @returns A list of signal values
+   */
+  drainSignals<T>(signalName: string): T[] {
+    const signals = this.nativeCtx.drainSignals(signalName);
+    return signals.map((sig) => deserialize<T>(sig.value));
   }
 
   /**

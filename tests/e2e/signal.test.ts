@@ -41,7 +41,7 @@ describe('Signal E2E Tests', () => {
       signalWorkflow,
       `signal-test-${Date.now()}`,
       {},
-      'greeting',
+      'signal', // Must use the well-known signal name the workflow expects
       { message: 'Hello from signal!' }
     );
 
@@ -51,7 +51,7 @@ describe('Signal E2E Tests', () => {
     const result = await env.awaitCompletion(handle, Duration.seconds(30));
 
     // Verify the output contains the signal
-    expect(result.signalName).toBe('greeting');
+    expect(result.signalName).toBe('signal');
     expect(result.signalValue).toEqual({ message: 'Hello from signal!' });
   });
 
@@ -70,8 +70,8 @@ describe('Signal E2E Tests', () => {
     // Wait for workflow to suspend
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Send signal to the workflow
-    const signalSeq = await env.signalWorkflow(handle, 'user-action', {
+    // Send signal to the workflow (must use 'signal' name that workflow expects)
+    const signalSeq = await env.signalWorkflow(handle, 'signal', {
       action: 'approve',
       user: 'admin',
     });
@@ -82,7 +82,7 @@ describe('Signal E2E Tests', () => {
     const result = await env.awaitCompletion(handle, Duration.seconds(30));
 
     // Verify the output contains the signal
-    expect(result.signalName).toBe('user-action');
+    expect(result.signalName).toBe('signal');
     expect(result.signalValue).toEqual({ action: 'approve', user: 'admin' });
   });
 
@@ -92,7 +92,7 @@ describe('Signal E2E Tests', () => {
      *
      * Flow:
      * 1. Start workflow that waits for multiple signals
-     * 2. Send multiple signals
+     * 2. Send multiple signals with same name (per-name FIFO queue)
      * 3. Workflow receives all signals in order
      */
     const { handle } = await env.startWorkflow(multiSignalWorkflow, { signalCount: 3 });
@@ -100,9 +100,9 @@ describe('Signal E2E Tests', () => {
     // Wait for workflow to start and suspend
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Send 3 signals
+    // Send 3 signals with the same name 'message' (workflow expects this name)
     for (let i = 1; i <= 3; i++) {
-      await env.signalWorkflow(handle, `message-${i}`, { content: `Message ${i}` });
+      await env.signalWorkflow(handle, 'message', { content: `Message ${i}`, seq: i });
       // Small delay between signals
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
@@ -110,12 +110,17 @@ describe('Signal E2E Tests', () => {
     // Wait for workflow to complete
     const result = await env.awaitCompletion(handle, Duration.seconds(30));
 
-    // Verify all signals were received
+    // Verify all signals were received in FIFO order
     expect(result.count).toBe(3);
     expect(result.signals).toHaveLength(3);
-    expect(result.signals[0].name).toBe('message-1');
-    expect(result.signals[1].name).toBe('message-2');
-    expect(result.signals[2].name).toBe('message-3');
+    // All signals have the same name 'message'
+    expect(result.signals[0].name).toBe('message');
+    expect(result.signals[1].name).toBe('message');
+    expect(result.signals[2].name).toBe('message');
+    // Values should be in FIFO order
+    expect(result.signals[0].value).toEqual({ content: 'Message 1', seq: 1 });
+    expect(result.signals[1].value).toEqual({ content: 'Message 2', seq: 2 });
+    expect(result.signals[2].value).toEqual({ content: 'Message 3', seq: 3 });
   });
 
   it('should signal-with-start to existing workflow', async () => {
@@ -129,12 +134,12 @@ describe('Signal E2E Tests', () => {
      */
     const workflowId = `signal-existing-test-${Date.now()}`;
 
-    // First signal_with_start creates the workflow
+    // First signal_with_start creates the workflow (use 'message' signal name)
     const result1 = await env.signalWithStartWorkflow(
       multiSignalWorkflow,
       workflowId,
       { signalCount: 2 },
-      'signal-1',
+      'message',
       { seq: 1 }
     );
 
@@ -143,23 +148,25 @@ describe('Signal E2E Tests', () => {
     // Small delay
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Second signal_with_start to same workflow_id
+    // Second signal_with_start to same workflow_id (same 'message' signal name)
     const result2 = await env.signalWithStartWorkflow(
       multiSignalWorkflow,
       workflowId,
       { signalCount: 2 },
-      'signal-2',
+      'message',
       { seq: 2 }
     );
 
     expect(result2.workflowCreated).toBe(false);
     expect(result2.handle.workflowId).toBe(result1.handle.workflowId);
 
-    // Wait for workflow to complete (it expects 2 signals)
+    // Wait for workflow to complete (it expects 2 signals with name 'message')
     const result = await env.awaitCompletion(result1.handle, Duration.seconds(30));
 
     // Verify both signals were received
     expect(result.signals).toHaveLength(2);
+    expect(result.signals[0].name).toBe('message');
+    expect(result.signals[1].name).toBe('message');
   });
 
   it('should check hasSignal and drain signals', async () => {
@@ -167,21 +174,21 @@ describe('Signal E2E Tests', () => {
      * Test hasSignal and drainSignals APIs.
      *
      * Flow:
-     * 1. Send signals via signal_with_start
-     * 2. Workflow checks hasSignal() and drains all
+     * 1. Send signals via signal_with_start (use 'data' signal name)
+     * 2. Workflow checks hasSignal('data') and drains all with that name
      */
     const { handle, workflowCreated } = await env.signalWithStartWorkflow(
       signalCheckWorkflow,
       `signal-check-${Date.now()}`,
       {},
-      'initial',
-      { data: 'first' }
+      'data', // Must use the well-known signal name the workflow expects
+      { content: 'first' }
     );
 
     expect(workflowCreated).toBe(true);
 
-    // Send another signal immediately
-    await env.signalWorkflow(handle, 'second', { data: 'second' });
+    // Send another signal immediately with the same name
+    await env.signalWorkflow(handle, 'data', { content: 'second' });
 
     // Wait for workflow to complete
     const result = await env.awaitCompletion(handle, Duration.seconds(30));
@@ -189,5 +196,9 @@ describe('Signal E2E Tests', () => {
     // Verify the output
     expect(result.hasSignal).toBe(true);
     expect(result.signals.length).toBeGreaterThanOrEqual(1);
+    // All drained signals have name 'data'
+    for (const sig of result.signals) {
+      expect(sig.name).toBe('data');
+    }
   });
 });

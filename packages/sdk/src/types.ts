@@ -125,23 +125,25 @@ export interface WorkflowContext {
   promise<T>(name: string, options?: PromiseOptions): Promise<T>;
 
   /**
-   * Wait for the next signal in the queue.
+   * Wait for the next signal with the specified name.
    *
-   * Signals are consumed in order. If no signal is available, the workflow
-   * will suspend until a signal is received.
+   * Each signal name has its own FIFO queue. Signals are consumed in order
+   * within each queue. If no signal with the given name is available, the
+   * workflow will suspend until one is received.
    *
-   * @returns The signal with its name and value
+   * @param signalName The signal name to wait for
+   * @returns The signal value
    */
-  waitForSignal<T>(): Promise<{ name: string; value: T }>;
+  waitForSignal<T>(signalName: string): Promise<T>;
 
-  /** Check if any signals are pending in the queue. */
-  hasSignal(): boolean;
+  /** Check if any signals with the specified name are pending. */
+  hasSignal(signalName: string): boolean;
 
-  /** Get the number of pending signals. */
-  pendingSignalCount(): number;
+  /** Get the number of pending signals with the specified name. */
+  pendingSignalCount(signalName: string): number;
 
-  /** Drain all pending signals from the queue. */
-  drainSignals<T>(): Array<{ name: string; value: T }>;
+  /** Drain all pending signals with the specified name. */
+  drainSignals<T>(signalName: string): T[];
 
   /** Execute a side effect operation (memoized). */
   run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T>;

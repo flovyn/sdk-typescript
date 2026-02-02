@@ -712,21 +712,23 @@ export const typedTaskWorkflow = workflow<TypedTaskInput, TypedTaskOutput>({
 
 /**
  * Workflow that waits for a single signal and returns it.
+ * Uses a well-known signal name that tests must use.
  */
 export const signalWorkflow = workflow<SignalWorkflowInput, SignalWorkflowOutput>({
   name: 'signal-workflow',
   run: async (ctx) => {
-    // Wait for a signal
-    const signal = await ctx.waitForSignal<unknown>();
+    // Wait for a signal with the well-known name 'signal'
+    const signalValue = await ctx.waitForSignal<unknown>('signal');
     return {
-      signalName: signal.name,
-      signalValue: signal.value,
+      signalName: 'signal',
+      signalValue,
     };
   },
 });
 
 /**
  * Workflow that waits for multiple signals.
+ * Uses a well-known signal name 'message' that tests must use.
  */
 export const multiSignalWorkflow = workflow<MultiSignalInput, MultiSignalOutput>({
   name: 'multi-signal-workflow',
@@ -734,8 +736,8 @@ export const multiSignalWorkflow = workflow<MultiSignalInput, MultiSignalOutput>
     const signals: Array<{ name: string; value: unknown }> = [];
 
     for (let i = 0; i < input.signalCount; i++) {
-      const signal = await ctx.waitForSignal<unknown>();
-      signals.push({ name: signal.name, value: signal.value });
+      const value = await ctx.waitForSignal<unknown>('message');
+      signals.push({ name: 'message', value });
     }
 
     return {
@@ -747,6 +749,7 @@ export const multiSignalWorkflow = workflow<MultiSignalInput, MultiSignalOutput>
 
 /**
  * Workflow that uses hasSignal and drainSignals for non-blocking check.
+ * Uses a well-known signal name 'data' that tests must use.
  */
 export const signalCheckWorkflow = workflow<SignalWorkflowInput, SignalCheckOutput>({
   name: 'signal-check-workflow',
@@ -754,15 +757,15 @@ export const signalCheckWorkflow = workflow<SignalWorkflowInput, SignalCheckOutp
     // Small delay to allow signals to arrive
     await ctx.sleep(Duration.milliseconds(500));
 
-    // Check if any signals are pending
-    const hasSignal = ctx.hasSignal();
+    // Check if any signals with name 'data' are pending
+    const hasSignal = ctx.hasSignal('data');
 
-    // Drain all pending signals
-    const signals = ctx.drainSignals<unknown>();
+    // Drain all pending signals with name 'data'
+    const signals = ctx.drainSignals<unknown>('data');
 
     return {
       hasSignal,
-      signals: signals.map((s) => ({ name: s.name, value: s.value })),
+      signals: signals.map((value) => ({ name: 'data', value })),
     };
   },
 });

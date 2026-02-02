@@ -305,10 +305,10 @@ export interface NapiWorkflowContextInstance {
   ): ChildWorkflowResult;
   runOperation(name: string): OperationResult;
   recordOperationResult(name: string, result: string): void;
-  waitForSignal(): SignalResult;
-  hasSignal(): boolean;
-  pendingSignalCount(): number;
-  drainSignals(): SignalEvent[];
+  waitForSignal(signalName: string): SignalResult;
+  hasSignal(signalName: string): boolean;
+  pendingSignalCount(signalName: string): number;
+  drainSignals(signalName: string): SignalEvent[];
   currentTimeMillis(): number;
   randomUuid(): string;
   random(): number;

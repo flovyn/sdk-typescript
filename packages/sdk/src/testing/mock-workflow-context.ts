@@ -87,6 +87,7 @@ export class MockWorkflowContext implements WorkflowContext {
   private _promiseResolutions: Map<string, { value?: unknown; error?: string }> = new Map();
   private _childWorkflowResults: Map<string, unknown[]> = new Map();
   private _operationResults: Map<string, unknown> = new Map();
+  private _signalQueues: Map<string, unknown[]> = new Map();
 
   // Tracking
   readonly executedTasks: TrackedTask[] = [];
@@ -270,6 +271,42 @@ export class MockWorkflowContext implements WorkflowContext {
     }
 
     return resolution.value as T;
+  }
+
+  /**
+   * Mock a signal by adding it to the per-name signal queue.
+   */
+  mockSignal<T>(signalName: string, value: T): void {
+    const queue = this._signalQueues.get(signalName) ?? [];
+    queue.push(value);
+    this._signalQueues.set(signalName, queue);
+  }
+
+  async waitForSignal<T>(signalName: string): Promise<T> {
+    const queue = this._signalQueues.get(signalName);
+    if (!queue || queue.length === 0) {
+      throw new Error(`No signals in queue for "${signalName}". Call mockSignal() first.`);
+    }
+    return queue.shift() as T;
+  }
+
+  hasSignal(signalName: string): boolean {
+    const queue = this._signalQueues.get(signalName);
+    return queue !== undefined && queue.length > 0;
+  }
+
+  pendingSignalCount(signalName: string): number {
+    return this._signalQueues.get(signalName)?.length ?? 0;
+  }
+
+  drainSignals<T>(signalName: string): T[] {
+    const queue = this._signalQueues.get(signalName);
+    if (!queue) {
+      return [];
+    }
+    const signals = [...queue] as T[];
+    queue.length = 0;
+    return signals;
   }
 
   async run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T> {

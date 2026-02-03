@@ -384,6 +384,67 @@ export class WorkflowContextImpl implements WorkflowContext {
   }
 
   /**
+   * Wait for the next signal in the queue.
+   *
+   * Signals are consumed in order. If no signal is available, the workflow
+   * will suspend until a signal is received.
+   *
+   * @returns The signal with its name and value
+   */
+  /**
+   * Wait for the next signal with the specified name.
+   *
+   * Each signal name has its own FIFO queue. Signals are consumed in order
+   * within each queue. If no signal with the given name is available, the
+   * workflow will suspend until one is received.
+   *
+   * @param signalName The signal name to wait for
+   * @returns The signal value
+   */
+  async waitForSignal<T>(signalName: string): Promise<T> {
+    const result = this.nativeCtx.waitForSignal(signalName);
+
+    if (result.status === 'received' && result.value) {
+      return deserialize<T>(result.value);
+    }
+
+    if (result.status === 'pending') {
+      throw new WorkflowSuspended(`Waiting for signal '${signalName}'`, this.takeCommands());
+    }
+
+    throw new Error(`Unexpected signal status: ${result.status}`);
+  }
+
+  /**
+   * Check if any signals with the specified name are pending.
+   *
+   * @param signalName The signal name to check
+   */
+  hasSignal(signalName: string): boolean {
+    return this.nativeCtx.hasSignal(signalName);
+  }
+
+  /**
+   * Get the number of pending signals with the specified name.
+   *
+   * @param signalName The signal name to count
+   */
+  pendingSignalCount(signalName: string): number {
+    return this.nativeCtx.pendingSignalCount(signalName);
+  }
+
+  /**
+   * Drain all pending signals with the specified name.
+   *
+   * @param signalName The signal name to drain
+   * @returns A list of signal values
+   */
+  drainSignals<T>(signalName: string): T[] {
+    const signals = this.nativeCtx.drainSignals(signalName);
+    return signals.map((sig) => deserialize<T>(sig.value));
+  }
+
+  /**
    * Execute a side effect operation (memoized).
    */
   async run<T>(operationName: string, fn: () => T | Promise<T>): Promise<T> {

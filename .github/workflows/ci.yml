@@ -114,5 +114,3 @@ jobs:
 
       - name: Run E2E tests
         run: pnpm test:e2e
-        env:
-          FLOVYN_SERVER_IMAGE: rg.fr-par.scw.cloud/flovyn/flovyn-server:latest

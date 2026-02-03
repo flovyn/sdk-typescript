@@ -31,7 +31,7 @@ interface PostgresContainer extends StartedContainer {
 export interface TestHarnessConfig {
   /**
    * Docker image for the Flovyn server.
-   * Defaults to FLOVYN_SERVER_IMAGE env var or the official image.
+   * Defaults to the official image.
    */
   serverImage?: string;
 
@@ -90,10 +90,7 @@ export class TestHarness {
 
   constructor(config: TestHarnessConfig = {}) {
     this.config = {
-      serverImage:
-        config.serverImage ??
-        process.env.FLOVYN_SERVER_IMAGE ??
-        'rg.fr-par.scw.cloud/flovyn/flovyn-server:latest',
+      serverImage: config.serverImage ?? 'rg.fr-par.scw.cloud/flovyn/flovyn-server:latest',
       postgresImage: config.postgresImage ?? 'postgres:18-alpine',
       natsImage: config.natsImage ?? 'nats:latest',
       healthCheckTimeout: config.healthCheckTimeout ?? 30000,

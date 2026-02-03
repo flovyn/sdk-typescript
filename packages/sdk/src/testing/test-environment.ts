@@ -389,6 +389,61 @@ export class FlovynTestEnvironment {
   }
 
   /**
+   * Send a signal to an existing workflow.
+   *
+   * @param handle The workflow handle.
+   * @param signalName The signal name.
+   * @param value The signal value.
+   * @returns The sequence number of the signal event.
+   */
+  async signalWorkflow<T>(
+    handle: WorkflowHandle<unknown>,
+    signalName: string,
+    value: T
+  ): Promise<number> {
+    if (!this._started || !this._client) {
+      throw new Error('Test environment not started. Call start() first.');
+    }
+
+    return this._client.signalWorkflow(handle.workflowId, signalName, value);
+  }
+
+  /**
+   * Send a signal to a workflow, creating it if it doesn't exist.
+   *
+   * @param workflow The workflow definition.
+   * @param workflowId The workflow ID (used as idempotency key).
+   * @param input The workflow input.
+   * @param signalName The signal name.
+   * @param signalValue The signal value.
+   * @returns An object containing the workflow handle and creation status.
+   */
+  async signalWithStartWorkflow<I, O, S>(
+    workflow: WorkflowDefinition<I, O>,
+    workflowId: string,
+    input: I,
+    signalName: string,
+    signalValue: S
+  ): Promise<{ handle: WorkflowHandle<O>; workflowCreated: boolean }> {
+    if (!this._started || !this._client) {
+      throw new Error('Test environment not started. Call start() first.');
+    }
+
+    const result = await this._client.signalWithStartWorkflow(
+      workflow,
+      workflowId,
+      input,
+      signalName,
+      signalValue
+    );
+
+    return {
+      handle: result.workflowHandle,
+      workflowCreated: result.workflowCreated,
+    };
+  }
+
+  /**
    * Get the underlying FlovynClient.
    */
   get client(): InstanceType<typeof import('../client').FlovynClient> | null {

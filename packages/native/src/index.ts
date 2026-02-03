@@ -245,6 +245,16 @@ export interface NapiWorkerInstance {
   readonly pauseReason: string | null;
 }
 
+export type SignalWorkflowResult = {
+  signalEventSequence: number;
+};
+
+export type SignalWithStartResult = {
+  workflowExecutionId: string;
+  workflowCreated: boolean;
+  signalEventSequence: number;
+};
+
 export interface NapiClientInstance {
   startWorkflow(
     workflowKind: string,
@@ -254,9 +264,33 @@ export interface NapiClientInstance {
   queryWorkflow(workflowId: string, queryName: string, args: string): Promise<string>;
   resolvePromise(promiseId: string, value: string): Promise<void>;
   rejectPromise(promiseId: string, error: string): Promise<void>;
+  signalWorkflow(
+    workflowExecutionId: string,
+    signalName: string,
+    signalValue: string
+  ): Promise<SignalWorkflowResult>;
+  signalWithStartWorkflow(
+    workflowId: string,
+    workflowKind: string,
+    workflowInput: string,
+    queue: string | undefined | null,
+    signalName: string,
+    signalValue: string
+  ): Promise<SignalWithStartResult>;
   readonly serverUrl: string;
   readonly orgId: string;
 }
+
+export type SignalResult = {
+  status: string;
+  signalName?: string;
+  value?: string;
+};
+
+export type SignalEvent = {
+  signalName: string;
+  value: string;
+};
 
 export interface NapiWorkflowContextInstance {
   scheduleTask(kind: string, input: string, queue?: string, timeoutMs?: number): TaskResult;
@@ -271,6 +305,10 @@ export interface NapiWorkflowContextInstance {
   ): ChildWorkflowResult;
   runOperation(name: string): OperationResult;
   recordOperationResult(name: string, result: string): void;
+  waitForSignal(signalName: string): SignalResult;
+  hasSignal(signalName: string): boolean;
+  pendingSignalCount(signalName: string): number;
+  drainSignals(signalName: string): SignalEvent[];
   currentTimeMillis(): number;
   randomUuid(): string;
   random(): number;
